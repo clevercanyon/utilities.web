@@ -122,20 +122,7 @@ export default async ( { mode } /* { command, mode, ssrBuild } */, projConfig = 
 	pkg.exports = pkg.exports || {};
 	pkg.exports[ '.' ] = pkg.exports[ '.' ] || {};
 
-	if ( isSSR ) {
-		mc.patch( pkg.exports, {
-			'.' : {
-				import  : './dist/index.js',
-				require : './dist/index.js',
-			},
-		} );
-		pkg.module  = './dist/index.js';
-		pkg.main    = './dist/index.js';
-		pkg.types   = './dist/types/index.d.ts';
-		pkg.browser = isWeb ? pkg.module : '';
-		pkg.unpkg   = pkg.module;
-
-	} else if ( isCma && cmaRelEntries.length > 1 ) {
+	if ( isCma && ( isSSR || cmaRelEntries.length > 1 ) ) {
 		mc.patch( pkg.exports, {
 			'.' : {
 				import  : './dist/index.js',
