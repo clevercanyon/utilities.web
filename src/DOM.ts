@@ -1,0 +1,153 @@
+/**
+ * Utility class.
+ */
+
+/**
+ * DOM utilities.
+ */
+export default class DOM {
+	/**
+	 * Fires a callback on document ready state.
+	 *
+	 * @param callback Callback.
+	 */
+	public static onDocReady(callback: () => void): void {
+		if ('loading' !== document.readyState) {
+			callback(); // Fires callback immediately.
+		} else {
+			document.addEventListener('DOMContentLoaded', () => callback());
+		}
+	}
+
+	/**
+	 * Fires a callback on window loaded state.
+	 *
+	 * @param callback Callback.
+	 */
+	public static onWinLoaded(callback: () => void) {
+		if ('complete' === document.readyState) {
+			callback(); // Fires callback immediately.
+		} else {
+			window.addEventListener('load', () => callback());
+		}
+	}
+
+	/**
+	 * Fires a callback on an event.
+	 *
+	 * @param eventName          Event name. Required always.
+	 * @param selectorOrCallback Selector for delegated events; else callback.
+	 * @param callback           Optional third parameter as callback when `selectorOrCallback` is `selector`.
+	 */
+	public static on(eventName: string, callback: ($: Event) => void): void;
+	public static on(eventName: string, selector: string, callback: ($: Event) => void): void;
+
+	public static on(eventName: string, selectorOrCallback: string | (($: Event) => void), callback?: ($: Event) => void): void {
+		if (2 === arguments.length) {
+			// eslint-disable-next-line prefer-rest-params
+			callback = arguments[1] as ($: Event) => void;
+			document.addEventListener(eventName, callback);
+			//
+		} else if (3 === arguments.length) {
+			const selector = selectorOrCallback as string;
+
+			document.addEventListener(eventName, (event: Event): void => {
+				let target = event.target;
+
+				if (!(target instanceof HTMLElement)) {
+					return; // Not applicable.
+				}
+				do {
+					if (target.matches(selector) && callback) {
+						callback.call(target, event);
+					}
+				} while ((target = target.parentNode) instanceof HTMLElement && target !== event.currentTarget);
+			});
+		} else {
+			throw new Error('Invalid call signature.');
+		}
+	}
+
+	/**
+	 * Debounce handler.
+	 *
+	 * @param   callback  Callback.
+	 * @param   delay     Optional delay. Default is `100`.
+	 * @param   immediate Immediate? Default is `false`.
+	 *
+	 * @returns           Debouncer.
+	 */
+	public static debounce(callback: () => void, delay: number = 100, immediate: boolean = false) {
+		let timeout: number | undefined;
+
+		return function (this: unknown, ...args: []) {
+			const afterDelay = () => {
+				if (!immediate) {
+					callback.apply(this, args);
+				}
+				timeout = undefined;
+			};
+			if (timeout) {
+				window.clearTimeout(timeout);
+			} else if (immediate) {
+				callback.apply(this, args);
+			}
+			timeout = window.setTimeout(afterDelay, delay);
+		};
+	}
+
+	/**
+	 * Attaches an element to `<head>`.
+	 *
+	 * @param element Element to attach.
+	 */
+	public static attachToHead(element: HTMLElement): void {
+		document.getElementsByTagName('head')[0].appendChild(element);
+	}
+
+	/**
+	 * Attaches an element to `<body>`.
+	 *
+	 * @param element Element to attach.
+	 */
+	public static attachToBody(element: HTMLElement): void {
+		document.getElementsByTagName('body')[0].appendChild(element);
+	}
+
+	/**
+	 * Attaches a `<script>` to `<body>`.
+	 *
+	 * @param src   Script source.
+	 * @param attrs Optional attributes. Default is `{}`.
+	 */
+	public static attachScript(src: string, attrs: { [$: string]: (($: Event) => void) | string | number | true } = {}): void {
+		DOM.attachToBody(DOM.createElement('script', Object.assign({}, attrs, { src: src, async: true })));
+	}
+
+	/**
+	 * Create a new HTML element.
+	 *
+	 * @param   tag   Tag name.
+	 * @param   attrs Optional attributes. Default is `{}`.
+	 *
+	 * @returns       HTML element.
+	 */
+	public static createElement(tag: string, attrs?: { [$: string]: (($: Event) => void) | string | number | true }): HTMLElement {
+		const element = document.createElement(tag);
+
+		for (const attr in attrs) {
+			if (typeof attrs[attr] === 'function') {
+				// @ts-ignore -- Cannot filter writable keys only.
+				element[attr as keyof HTMLElement] = attrs[attr];
+			}
+		}
+		for (const attr in attrs) {
+			if (true === attrs[attr]) {
+				element.setAttribute(attr, '');
+			} else if (['string', 'number'].indexOf(typeof attrs[attr]) !== -1) {
+				element.setAttribute(attr, String(attrs[attr]));
+			}
+		}
+		return element;
+	}
+}
