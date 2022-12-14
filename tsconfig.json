@@ -11,7 +11,7 @@
 
 {
 	"extends": "./dev/.files/typescript/config.json",
-	/**
+	/*
 	 * Customizations
 	 * <custom:start> */
 
@@ -19,5 +19,5 @@
 		"lib": ["es2021", "dom"],
 		"types": ["vite/client"]
 	}
-	/** </custom:end> */
+	/* </custom:end> */
 }
