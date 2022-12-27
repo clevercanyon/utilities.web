@@ -11,19 +11,22 @@
  */
 /* eslint-env es2021, node */
 
-import mc from '@clevercanyon/js-object-mc';
-import pluginBasicSSL from '@vitejs/plugin-basic-ssl';
-import chalk from 'chalk';
-import desm from 'desm';
-import { globby } from 'globby';
-import _ from 'lodash';
-import mm from 'micromatch';
-import fsp from 'node:fs/promises';
 import path from 'node:path';
+import fsp from 'node:fs/promises';
+
+import _ from 'lodash';
+import desm from 'desm';
+import chalk from 'chalk';
+import mm from 'micromatch';
+import mc from 'merge-change';
 import prettier from 'prettier';
+import { globby } from 'globby';
+
 import { loadEnv } from 'vite';
+import pluginBasicSSL from '@vitejs/plugin-basic-ssl';
 import { ViteEjsPlugin as pluginEJS } from 'vite-plugin-ejs';
 import { ViteMinifyPlugin as pluginMinifyHTML } from 'vite-plugin-minify';
+
 import aliases from './includes/aliases.js';
 
 /**
@@ -67,9 +70,11 @@ export default async ({ mode } /* { command, mode, ssrBuild } */, projConfig = {
 	const publicEnvPrefix = 'APP_PUBLIC_'; // Used below also.
 	const env = loadEnv(mode, envsDir, publicEnvPrefix);
 
-	const isProd = /^prod(uction)?$/iu.test(mode);
-	const isDev = !isProd; // Always opposite.
-	const nodeEnv = isProd ? 'production' : 'development';
+	const isDev = /^dev(elopment)?$/iu.test(mode);
+	const isProd = !isDev; // Always opposite.
+
+	const nodeEnv = isDev ? 'development' : 'production';
+	process.env.NODE_ENV = nodeEnv; // <https://o5p.me/DscTVM>.
 
 	/**
 	 * App type and target env.
@@ -77,8 +82,8 @@ export default async ({ mode } /* { command, mode, ssrBuild } */, projConfig = {
 	const appType = pkg.config?.c10n?.['&'].build?.appType || 'cma';
 	const targetEnv = pkg.config?.c10n?.['&'].build?.targetEnv || 'any';
 
-	const isMpa = 'mpa' === appType,
-		isCma = 'cma' === appType;
+	const isMPA = 'mpa' === appType;
+	const isCMA = 'cma' === appType || !isMPA;
 
 	let cmaName = (pkg.name || '').toLowerCase();
 	cmaName = cmaName.replace(/\bclevercanyon\b/gu, 'c10n');
@@ -86,118 +91,147 @@ export default async ({ mode } /* { command, mode, ssrBuild } */, projConfig = {
 	cmaName = cmaName.replace(/[^a-z.0-9]([^.])/gu, (m0, m1) => m1.toUpperCase());
 	cmaName = cmaName.replace(/^\.|\.$/u, '');
 
-	const mpaAbsPathIndexes = await globby('**/index.html', { expandDirectories: false, cwd: srcDir, absolute: true });
-	const mpaSubPathIndexes = mpaAbsPathIndexes.map((absPath) => path.relative(srcDir, absPath));
+	const mpaIndexes = await globby('**/index.html', { expandDirectories: false, cwd: srcDir, absolute: true });
+	const mpaIndexesSubPaths = mpaIndexes.map((absPath) => path.relative(srcDir, absPath));
 
-	const cmaAbsPathEntries = await globby('*.{tsx,ts,jsx,mjs,js}', { expandDirectories: false, cwd: srcDir, absolute: true });
-	const cmaRelPathEntries = cmaAbsPathEntries.map((absPath) => './' + path.relative(srcDir, absPath));
-	const cmaSubPathEntries = cmaAbsPathEntries.map((absPath) => path.relative(srcDir, absPath));
+	const cmaEntries = await globby('*.{tsx,ts,jsx,mjs,js}', { expandDirectories: false, cwd: srcDir, absolute: true });
+	const cmaEntriesRelPaths = cmaEntries.map((absPath) => './' + path.relative(srcDir, absPath));
+	const cmaEntriesSubpaths = cmaEntries.map((absPath) => path.relative(srcDir, absPath));
+	const cmaEntriesSubpathsNoExt = cmaEntriesSubpaths.map((subpath) => subpath.replace(/\.[^.]+$/u, ''));
 
-	const mpaEntryIndex = mpaSubPathIndexes.find((subPath) => mm.isMatch(subPath, 'index.html'));
-	const cmaEntryIndex = cmaSubPathEntries.find((subPath) => mm.isMatch(subPath, 'index.{tsx,ts,jsx,mjs,js}'));
+	const mpaEntryIndexSubpath = mpaIndexesSubPaths.find((subpath) => mm.isMatch(subpath, 'index.html'));
+	const cmaEntryIndexSubpath = cmaEntriesSubpaths.find((subpath) => mm.isMatch(subpath, 'index.{tsx,ts,jsx,mjs,js}'));
+	const cmaEntryIndexSubpathNoExt = cmaEntryIndexSubpath.replace(/\.[^.]+$/u, '');
 
 	const isWeb = ['web', 'webw'].includes(targetEnv);
 	const isSSR = ['cfp', 'cfw', 'node'].includes(targetEnv);
 	const isSSRWorker = isSSR && ['cfw'].includes(targetEnv);
 
-	if ((!isMpa && !isCma) || !['mpa', 'cma'].includes(appType)) {
+	if ((!isMPA && !isCMA) || !['mpa', 'cma'].includes(appType)) {
 		throw new Error('Must have a valid `config.c10n.&.build.appType` in `package.json`.');
 	}
 	if (!['any', 'cfp', 'cfw', 'node', 'web', 'webw', 'opl'].includes(targetEnv)) {
 		throw new Error('Must have a valid `config.c10n.&.build.targetEnv` in `package.json`.');
 	}
-	if (isMpa && !mpaEntryIndex) {
-		throw new Error('Multipage apps must have an `./index.{tsx,ts,jsx,mjs,js}` entry point.');
+	if (isMPA && !mpaEntryIndexSubpath) {
+		throw new Error('Multipage apps must have an `./index.html` entry point.');
 	}
-	if (isCma && !cmaEntryIndex) {
+	if (isCMA && !cmaEntryIndexSubpath) {
 		throw new Error('Custom apps must have an `./index.{tsx,ts,jsx,mjs,js}` entry point.');
 	}
 
 	/**
 	 * Updates `package.json` accordingly.
 	 */
-	pkg.exports = pkg.exports || {};
-	pkg.exports['.'] = pkg.exports['.'] || {};
+	pkg.exports = {}; // Ensure exists as object.
 
-	if (isCma && (isSSR || cmaAbsPathEntries.length > 1)) {
+	if (isCMA && (isSSR || cmaEntriesSubpathsNoExt.length > 1)) {
 		mc.patch(pkg.exports, {
 			'.': {
-				import: './dist/index.js',
-				require: './dist/index.cjs',
+				import: './dist/' + cmaEntryIndexSubpathNoExt + '.js',
+				require: './dist/' + cmaEntryIndexSubpathNoExt + '.cjs',
+				types: './dist/types/' + cmaEntryIndexSubpathNoExt + '.d.ts',
 			},
 		});
-		pkg.module = './dist/index.js';
-		pkg.main = './dist/index.cjs';
-		pkg.types = './dist/types/index.d.ts';
+		pkg.module = './dist/' + cmaEntryIndexSubpathNoExt + '.js';
+		pkg.main = './dist/' + cmaEntryIndexSubpathNoExt + '.cjs';
+
 		pkg.browser = isWeb ? pkg.module : '';
 		pkg.unpkg = pkg.module;
-	} else if (isCma) {
+
+		pkg.types = './dist/types/' + cmaEntryIndexSubpathNoExt + '.d.ts';
+		pkg.typesVersions = { '>=3.1': { './*': ['./dist/types/*'] } };
+
+		for (const cmaEntrySubPathNoExt of cmaEntriesSubpathsNoExt) {
+			if (cmaEntrySubPathNoExt === cmaEntryIndexSubpathNoExt) {
+				continue; // Don't remap the entry index.
+			}
+			mc.patch(pkg.exports, {
+				['./' + cmaEntrySubPathNoExt]: {
+					import: './dist/' + cmaEntrySubPathNoExt + '.js',
+					require: './dist/' + cmaEntrySubPathNoExt + '.cjs',
+					types: './dist/types/' + cmaEntrySubPathNoExt + '.d.ts',
+				},
+			});
+		}
+	} else if (isCMA) {
 		mc.patch(pkg.exports, {
 			'.': {
-				import: './dist/index.js',
-				require: './dist/index.umd.cjs',
+				import: './dist/' + cmaEntryIndexSubpathNoExt + '.js',
+				require: './dist/' + cmaEntryIndexSubpathNoExt + '.umd.cjs',
+				types: './dist/types/' + cmaEntryIndexSubpathNoExt + '.d.ts',
 			},
 		});
-		pkg.module = './dist/index.js';
-		pkg.main = './dist/index.umd.cjs';
-		pkg.types = './dist/types/index.d.ts';
+		pkg.module = './dist/' + cmaEntryIndexSubpathNoExt + '.js';
+		pkg.main = './dist/' + cmaEntryIndexSubpathNoExt + '.umd.cjs';
+
 		pkg.browser = isWeb ? pkg.main : '';
 		pkg.unpkg = pkg.main;
+
+		pkg.types = './dist/types/' + cmaEntryIndexSubpathNoExt + '.d.ts';
+		pkg.typesVersions = { '>=3.1': { './*': ['./dist/types/*'] } };
 	} else {
-		// It's not a CMA. It's an MPA.
-		pkg.exports = {}; // Clear these out entirely.
-		pkg.module = pkg.main = pkg.unpkg = pkg.browser = pkg.types = '';
+		(pkg.exports = []), (pkg.typesVersions = {});
+		// ↑ When empty, `exports` should default to an array.
+		pkg.module = pkg.main = pkg.browser = pkg.unpkg = pkg.types = '';
 	}
 	await fsp.writeFile(pkgFile, prettier.format(JSON.stringify(pkg, null, 4), pkgPrettierCfg));
 
 	console.log(
 		chalk.blue('Updated `package.json` properties: ') + //
-			chalk.green(JSON.stringify(_.pick(pkg, ['exports', 'module', 'main', 'unpkg', 'browser', 'types']), null, 4)),
+			chalk.green(JSON.stringify(_.pick(pkg, ['exports', 'module', 'main', 'browser', 'unpkg', 'types', 'typesVersions']), null, 4)),
 	);
 
 	/**
-	 * Configures rollup.
+	 * Configures plugins for Vite.
 	 *
-	 * @see https://o5p.me/5Vupql
-	 */
-	const rollupConfig = {
-		input: isCma // Absolute paths.
-			? cmaAbsPathEntries
-			: mpaAbsPathIndexes,
-
-		// Peer dependencies are flagged as external; i.e., they'll be installed by a peer.
-		...(Object.keys(pkg.peerDependencies || {}).length ? { external: Object.keys(pkg.peerDependencies) } : {}),
-
-		output: {
-			extend: true, // Global || checks.
-			interop: 'auto', // Like `tsconfig.json`.
-			noConflict: true, // Like `jQuery.noConflict()`.
-		},
-	};
-	const importedWorkerRollupConfig = {
-		// Imported web workers; e.g., `?worker`.
-		// See: <https://vitejs.dev/guide/features.html#web-workers>.
-		output: {
-			extend: true, // Global || checks.
-			interop: 'auto', // Like `tsconfig.json`.
-			noConflict: true, // Like `jQuery.noConflict()`.
-		},
-	};
-
-	/**
-	 * Configures Vite plugins.
+	 * Also configures plugins for imported web workers; e.g., `?worker`. See:
+	 * {@link https://vitejs.dev/guide/features.html#web-workers}.
 	 *
 	 * @see https://github.com/vitejs/vite-plugin-basic-ssl
-	 * @see https://github.com/zhuweiyou/vite-plugin-minify
 	 * @see https://github.com/trapcodeio/vite-plugin-ejs
+	 * @see https://github.com/zhuweiyou/vite-plugin-minify
 	 */
 	const pluginBasicSSLConfig = pluginBasicSSL();
-	const pluginMinifyHTMLConfig = isProd ? pluginMinifyHTML() : null;
 	const pluginEJSConfig = pluginEJS(
 		{ NODE_ENV: nodeEnv, isProd, isDev, env, pkg }, //
 		{ ejs: { root: srcDir, views: [path.resolve(srcDir, './resources/ejs-views')], strict: true, localsName: '$' } },
 	);
+	const pluginMinifyHTMLConfig = isProd ? pluginMinifyHTML() : null;
+
 	const plugins = [pluginBasicSSLConfig, pluginEJSConfig, pluginMinifyHTMLConfig];
+	const importedWorkerPlugins = []; // None applicable at this time.
+
+	/**
+	 * Configures rollup for Vite.
+	 *
+	 * Also configures rollup for imported web workers; e.g., `?worker`. See:
+	 * {@link https://vitejs.dev/guide/features.html#web-workers}.
+	 *
+	 * @see https://rollupjs.org/guide/en/#input
+	 * @see https://rollupjs.org/guide/en/#outputdir
+	 * @see https://rollupjs.org/guide/en/#big-list-of-options
+	 */
+	const rollupConfig = {
+		input: isCMA // Absolute paths.
+			? cmaEntries
+			: mpaIndexes,
+
+		external: [
+			'__STATIC_CONTENT_MANIFEST', // CF workers.
+			...Object.keys(pkg.peerDependencies || {}),
+		],
+		output: {
+			interop: 'auto', // Matches TypeScript.
+			exports: 'named', // Matches TypeScript.
+			esModule: true, // Matches TypeScript.
+
+			extend: true, // Global || checks.
+			noConflict: true, // Like `jQuery.noConflict()`.
+		},
+	};
+	const importedWorkerRollupConfig = { ...rollupConfig };
+	delete importedWorkerRollupConfig.input; // Not applicable.
 
 	/**
 	 * Vite config base.
@@ -219,7 +253,7 @@ export default async ({ mode } /* { command, mode, ssrBuild } */, projConfig = {
 		publicDir: './cargo', // Static assets relative to `root`.
 		base: '/', // Analagous to `<base href="/">` — use trailing slash.
 
-		appType: isCma ? 'custom' : 'mpa', // MPA = multipage app: <https://o5p.me/ZcTkEv>.
+		appType: isCMA ? 'custom' : 'mpa', // MPA = multipage app: <https://o5p.me/ZcTkEv>.
 		resolve: { alias: aliases }, // See: `../typescript/config.json` and `./includes/aliases.js`.
 
 		envDir: './' + path.relative(srcDir, envsDir), // Relative to `root`.
@@ -234,8 +268,8 @@ export default async ({ mode } /* { command, mode, ssrBuild } */, projConfig = {
 		worker: {
 			// Imported web workers; e.g., `?worker`.
 			// See: <https://vitejs.dev/guide/features.html#web-workers>.
-			plugins: [],
 			format: 'es',
+			plugins: importedWorkerPlugins,
 			rollupOptions: importedWorkerRollupConfig,
 		},
 		build: {
@@ -253,7 +287,7 @@ export default async ({ mode } /* { command, mode, ssrBuild } */, projConfig = {
 			sourcemap: isDev, // Enables creation of sourcemaps.
 			manifest: isDev, // Enables creation of manifest for assets.
 
-			...(isCma ? { lib: { name: cmaName, entry: cmaRelPathEntries } } : {}),
+			...(isCMA ? { lib: { name: cmaName, entry: cmaEntriesRelPaths } } : {}),
 			rollupOptions: rollupConfig, // See: <https://o5p.me/5Vupql>.
 		},
 		...(isSSR

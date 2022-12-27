@@ -2,8 +2,18 @@
  * Utility class.
  */
 
-import { $Cookie, $URL } from '@clevercanyon/utilities';
-import { default as DOM } from './DOM';
+import {
+	currentHost as $urlꓺcurrentHost,
+	currentPath as $urlꓺcurrentPath,
+	getQueryVar as $urlꓺgetQueryVar,
+	getQueryVars as $urlꓺgetQueryVars,
+	encode as $urlꓺencode,
+} from '@clevercanyon/utilities/url';
+
+import { get as $envꓺget } from '@clevercanyon/utilities/env';
+import { get as $cookieꓺget, set as $cookieꓺset } from '@clevercanyon/utilities/cookie';
+
+import { $dom } from './index.js';
 
 /**
  * Window.
@@ -17,9 +27,9 @@ declare global {
 }
 
 /**
- * Constructor props.
+ * Setup options.
  */
-interface AnalyticsConstructorProps {
+interface SetupOptions {
 	debug?: boolean;
 	csGDPRScriptId?: string;
 	ga4GtagId?: string;
@@ -29,23 +39,21 @@ interface AnalyticsConstructorProps {
 }
 
 /**
- * Geo data.
- *
- *     {
- *     	"colo": "ATL",
- *     	"country": "US",
- *     	"city": "Alpharetta",
- *     	"continent": "NA",
- *     	"latitude": "34.02400",
- *     	"longitude": "-84.23960",
- *     	"postalCode": "30022",
- *     	"metroCode": "524",
- *     	"region": "Georgia",
- *     	"regionCode": "GA",
- *     	"timezone": "America/New_York"
- *     }
+ * Config options.
  */
-interface AnalyticsGeoData {
+interface ConfigOptions {
+	debug: boolean;
+	csGDPRScriptId: string;
+	ga4GtagId: string;
+	context: string;
+	subContext: string;
+	userId: string;
+}
+
+/**
+ * Geo data.
+ */
+interface GeoData {
 	colo?: string;
 	country?: string;
 	city?: string;
@@ -60,290 +68,292 @@ interface AnalyticsGeoData {
 }
 
 /**
- * Analytics.
+ * Is setup?
  */
-export default class Analytics {
-	/**
-	 * Cache.
-	 */
-	protected cache: {
-		geoData?: AnalyticsGeoData;
-		[$: string]: unknown;
-	} = {};
+let isSetup = false;
 
-	/**
-	 * Gtag instance.
-	 */
-	protected gtag: (...args: Array<unknown>) => null;
+/**
+ * Setup-related errors.
+ */
+const alreadySetupError = new Error('Already set up.');
+const notSetupError = new Error('Not set up.');
 
-	/**
-	 * Enable debug mode?
-	 */
-	protected debug: boolean;
+/**
+ * Cache.
+ */
+const cache: {
+	geoData?: GeoData;
+	[$: string]: unknown;
+} = {};
 
-	/**
-	 * GA4 gtag ID; e.g., `G-8K3F2ZYNYX`.
-	 */
-	protected ga4GtagId: string;
+/**
+ * Config options.
+ */
+const config: ConfigOptions = {
+	debug: Boolean($envꓺget('APP_PUBLIC_ANALYTICS_DEBUG') || false),
+	ga4GtagId: String($envꓺget('APP_PUBLIC_ANALYTICS_GA4_GTAG_ID') || ''),
+	csGDPRScriptId: String($envꓺget('APP_PUBLIC_ANALYTICS_CS_GDPR_SCRIPT_ID') || ''),
+	context: String($envꓺget('APP_PUBLIC_ANALYTICS_CONTEXT') || 'web'),
+	subContext: String($envꓺget('APP_PUBLIC_ANALYTICS_SUB_CONTEXT') || 'site'),
+	userId: String($cookieꓺget('utx_user_id') || ''),
+};
 
-	/**
-	 * Cookie Script GDPR script ID.
-	 *
-	 * E.g., `ecf9ba42a3e03d5dd3894e6e`.
-	 */
-	protected csGDPRScriptId: string;
-
-	/**
-	 * Context; e.g., `web`.
-	 */
-	protected context: string;
-
-	/**
-	 * Sub-context; e.g., `site`.
-	 */
-	protected subContext: string;
-
-	/**
-	 * User ID hash; e.g., SHA-256.
-	 */
-	protected _userId: string;
-
-	/**
-	 * Constructor.
-	 *
-	 * @param config Config.
-	 */
-	public constructor(config: AnalyticsConstructorProps) {
-		config = Object.assign(
-			{
-				debug: false,
-				csGDPRScriptId: '',
-				ga4GtagId: '',
-				context: 'web',
-				subContext: 'site',
-				userId: '',
-			},
-			config,
-		);
-		this.debug = config.debug || false;
-		this.csGDPRScriptId = config.csGDPRScriptId || '';
-		this.ga4GtagId = config.ga4GtagId || '';
-		this.context = config.context || 'web';
-		this.subContext = config.subContext || 'site';
-		this._userId = config.userId || '';
-
-		if (!this.ga4GtagId) {
-			throw new Error('Missing required property: `ga4GtagId`.');
-		}
-		window.dataLayer = window.dataLayer || [];
-		window.gtag =
-			window.gtag ||
-			function (...args) {
-				window.dataLayer.push(args);
-			};
-		this.gtag = window.gtag; // Private reference.
-
-		DOM.onWinLoaded(() => this.loadThenInitialize());
+/**
+ * Sets up analytics.
+ *
+ * @param options Optional setup options.
+ */
+export function setup(options: SetupOptions = {}) {
+	if (isSetup) {
+		throw alreadySetupError;
 	}
+	isSetup = true; // Doing now.
 
-	/**
-	 * Gets user ID hash.
-	 *
-	 * @returns User ID hash.
-	 */
-	public async userId(): Promise<string> {
-		return this._userId; // Async = uniformity.
+	Object.assign(config, options);
+
+	if (!config.ga4GtagId) {
+		throw new Error('Missing `ga4GtagId`.');
 	}
+	window.dataLayer = window.dataLayer || [];
+	window.gtag =
+		window.gtag ||
+		function (...args) {
+			window.dataLayer.push(args);
+		};
+	$dom.onWinLoaded(() => loadThenInitialize());
+}
 
-	/**
-	 * Gets client ID.
-	 *
-	 * @returns Client ID; e.g., `826737564.1651025377`.
-	 */
-	public async clientId(): Promise<string> {
-		return new Promise((resolve) => {
-			this.gtag('get', this.ga4GtagId, 'client_id', resolve) || '';
-		});
+/**
+ * Gets user ID hash.
+ *
+ * @returns User ID hash.
+ */
+export async function userId(): Promise<string> {
+	if (!isSetup) {
+		throw notSetupError;
 	}
+	return config.userId; // Async = uniformity.
+}
 
-	/**
-	 * Gets session ID.
-	 *
-	 * @returns Session ID; e.g., `1651031160`.
-	 */
-	public async sessionId(): Promise<string> {
-		return new Promise((resolve) => {
-			this.gtag('get', this.ga4GtagId, 'session_id', resolve) || '';
-		});
+/**
+ * Gets client ID.
+ *
+ * @returns Client ID; e.g., `826737564.1651025377`.
+ */
+export async function clientId(): Promise<string> {
+	if (!isSetup) {
+		throw notSetupError;
 	}
+	return new Promise((resolve) => {
+		window.gtag('get', config.ga4GtagId, 'client_id', resolve);
+	}).then((value: unknown): string => String(value || ''));
+}
 
-	/**
-	 * Gets geolocation data.
-	 *
-	 * @returns Geolocation data.
-	 */
-	public async geoData(): Promise<AnalyticsGeoData> {
-		if (this.cache.geoData) {
-			return this.cache.geoData;
-		}
-		return fetch('https://wobots.com/api/ip-geo/v1')
-			.then((response) => response.json())
-			.then((json) => (this.cache.geoData = json as AnalyticsGeoData));
+/**
+ * Gets session ID.
+ *
+ * @returns Session ID; e.g., `1651031160`.
+ */
+export async function sessionId(): Promise<string> {
+	if (!isSetup) {
+		throw notSetupError;
 	}
+	return new Promise((resolve) => {
+		window.gtag('get', config.ga4GtagId, 'session_id', resolve);
+	}).then((value: unknown): string => String(value || ''));
+}
 
-	/**
-	 * Tracks a `page_view` event.
-	 *
-	 * @param   props Optional event props.
-	 *
-	 * @returns       `true` on success.
-	 */
-	public async trackPageView(props: { [$: string]: unknown } = {}): Promise<boolean> {
-		if ($URL.getQueryVar('utm_source')) {
-			$Cookie.set('utx_touch', JSON.stringify(this.utmXQueryVars(), null, 2));
-		}
-		return this.trackEvent('page_view', props);
+/**
+ * Gets geolocation data.
+ *
+ * @returns Geolocation data.
+ */
+export async function geoData(): Promise<GeoData> {
+	if (!isSetup) {
+		throw notSetupError;
 	}
+	if (cache.geoData) {
+		return cache.geoData;
+	}
+	return fetch('https://wobots.com/api/ip-geo/v1')
+		.then((response) => response.json())
+		.then((json) => (cache.geoData = json as GeoData));
+}
 
-	/**
-	 * Tracks an `x_click` event.
-	 *
-	 * @param   event Click event.
-	 * @param   props Optional event props.
-	 *
-	 * @returns       `true` on success.
-	 */
-	public async trackClick(event: Event, props: { [$: string]: unknown } = {}): Promise<boolean> {
-		const element = event.target as HTMLElement;
-		const idAttr = element.getAttribute('id') || '';
-		const classAttr = element.getAttribute('class') || '';
+/**
+ * Tracks a `page_view` event.
+ *
+ * @param   props Optional event props.
+ *
+ * @returns       `true` on success.
+ */
+export async function trackPageView(props: { [$: string]: unknown } = {}): Promise<boolean> {
+	if (!isSetup) {
+		throw notSetupError;
+	}
+	if ($urlꓺgetQueryVar('utm_source')) {
+		$cookieꓺset('utx_touch', JSON.stringify(utmXQueryVars(), null, 2));
+	}
+	return trackEvent('page_view', props);
+}
 
-		return this.trackEvent('x_click', {
-			x_flex_id: idAttr || (/(?:^|\s)click-id=([a-z0-9_-]+)(?:$|\s)/iu.exec(classAttr) || [])[1] || null,
-			x_flex_sub_id: element.getAttribute('href'), // In the case of `<a>` tags.
+/**
+ * Tracks an `x_click` event.
+ *
+ * @param   event Click event.
+ * @param   props Optional event props.
+ *
+ * @returns       `true` on success.
+ */
+export async function trackClick(event: Event, props: { [$: string]: unknown } = {}): Promise<boolean> {
+	if (!isSetup) {
+		throw notSetupError;
+	}
+	const element = event.target as HTMLElement;
+	const idAttr = element.getAttribute('id') || '';
+	const classAttr = element.getAttribute('class') || '';
 
-			x_flex_value: element.getAttribute('title') || (element.innerText || '').replace(/\s+/gu, ' ').trim() || element.getAttribute('value'),
-			x_flex_sub_value: element.tagName.toLowerCase(),
+	return trackEvent('x_click', {
+		x_flex_id: idAttr || (/(?:^|\s)click-id=([a-z0-9_-]+)(?:$|\s)/iu.exec(classAttr) || [])[1] || null,
+		x_flex_sub_id: element.getAttribute('href'), // In the case of `<a>` tags.
 
+		x_flex_value: element.getAttribute('title') || (element.innerText || '').replace(/\s+/gu, ' ').trim() || element.getAttribute('value'),
+		x_flex_sub_value: element.tagName.toLowerCase(),
+
+		...props,
+	});
+}
+
+/**
+ * Tracks an event.
+ *
+ * @param   name  A standard or custom event name. Please prefix custom event names with `x_`.
+ * @param   props Optional event props.
+ *
+ * @returns       `true` on success.
+ */
+export async function trackEvent(name: string, props: { [$: string]: unknown } = {}): Promise<boolean> {
+	if (!isSetup) {
+		throw notSetupError;
+	}
+	return Promise.all([userId(), clientId(), sessionId()]).then(([userId, clientId, sessionId]) => {
+		window.gtag('event', name, {
+			send_to: [config.ga4GtagId],
+
+			x_client_id: clientId,
+			x_session_id: sessionId,
+			...(userId ? { user_id: userId } : null),
+			...(userId ? { user_properties: { x_user_id: userId } } : null),
+
+			x_context: config.context,
+			x_sub_context: config.subContext,
+			x_hostname: $urlꓺcurrentHost(false),
+
+			...utmXQueryVarDimensions(),
 			...props,
 		});
+		return true;
+	});
+}
+
+/**
+ * DNT header indicates 'Do Not Track'?
+ *
+ * @returns `true` when DNT header exists.
+ *
+ * @see https://o5p.me/Fg9eaO
+ */
+function userHasDoNotTrackHeader(): boolean {
+	if (!isSetup) {
+		throw notSetupError;
 	}
+	return '1' === window.doNotTrack || (window.navigator && '1' === navigator.doNotTrack);
+}
 
-	/**
-	 * Tracks an event.
-	 *
-	 * @param   name  A standard or custom event name. Please prefix custom event names with `x_`.
-	 * @param   props Optional event props.
-	 *
-	 * @returns       `true` on success.
-	 */
-	public async trackEvent(name: string, props: { [$: string]: unknown } = {}): Promise<boolean> {
-		return Promise.all([this.userId(), this.clientId(), this.sessionId()]).then(([userId, clientId, sessionId]) => {
-			this.gtag('event', name, {
-				send_to: [this.ga4GtagId],
-
-				x_client_id: clientId,
-				x_session_id: sessionId,
-				...(userId ? { user_id: userId } : null),
-				...(userId ? { user_properties: { x_user_id: userId } } : null),
-
-				x_context: this.context,
-				x_sub_context: this.subContext,
-				x_hostname: $URL.currentHost(false),
-
-				...this.utmXQueryVarDimensions(),
-				...props,
+/**
+ * Loads analytics.
+ */
+function loadThenInitialize(): void {
+	if (!isSetup) {
+		throw notSetupError;
+	}
+	void geoData().then((geoData) => {
+		if ('US' !== geoData.country || userHasDoNotTrackHeader() || /^\/(?:privacy|cookies?)(?:[_-]policy)?(?:$|\/)/iu.test($urlꓺcurrentPath())) {
+			window.gtag('consent', 'default', {
+				wait_for_update: 500,
+				ad_storage: 'denied',
+				analytics_storage: 'denied',
+				functionality_storage: 'denied',
+				personalization_storage: 'denied',
+				security_storage: 'denied',
 			});
-			return true;
-		});
-	}
-
-	/**
-	 * DNT header indicates 'Do Not Track'?
-	 *
-	 * @returns `true` is DNT header exists.
-	 *
-	 * @see https://o5p.me/Fg9eaO
-	 */
-	public userHasDoNotTrackHeader(): boolean {
-		return '1' === window.doNotTrack || (window.navigator && '1' === navigator.doNotTrack);
-	}
-
-	/**
-	 * Loads analytics.
-	 */
-	protected loadThenInitialize(): void {
-		void this.geoData().then((geoData) => {
-			if ('US' !== geoData.country || this.userHasDoNotTrackHeader() || /^\/(?:privacy|cookies?)(?:[_-]policy)?(?:$|\/)/iu.test($URL.currentPath())) {
-				this.gtag('consent', 'default', {
-					wait_for_update: 500,
-					ad_storage: 'denied',
-					analytics_storage: 'denied',
-					functionality_storage: 'denied',
-					personalization_storage: 'denied',
-					security_storage: 'denied',
+			if (config.csGDPRScriptId) {
+				// See: <https://cookie-script.com/web-cookie-types>.
+				// See: <https://support.google.com/analytics/answer/9976101?hl=en>.
+				$dom.attachScript('https://cdn.cookie-script.com/s/' + $urlꓺencode(config.csGDPRScriptId) + '.js', {
+					onload: () => initialize(),
 				});
-				if (this.csGDPRScriptId) {
-					// See: <https://cookie-script.com/web-cookie-types>.
-					// See: <https://support.google.com/analytics/answer/9976101?hl=en>.
-					DOM.attachScript('https://cdn.cookie-script.com/s/' + $URL.encode(this.csGDPRScriptId) + '.js', {
-						onload: () => this.initialize(),
-					});
-				}
-			} else {
-				void this.initialize();
 			}
-		});
-	}
-
-	/**
-	 * Initializes analytics.
-	 */
-	protected initialize(): void {
-		// GA4 initialize, configuration, and load JS.
-
-		// This must fire *after* `gtag( 'consent', ...` setup.
-		// See: <https://o5p.me/Dc5cKA> <https://o5p.me/mW2tgB>.
-		this.gtag('js', new Date()); // Fires `gtm.js` event and sets `gtm.start` timer.
-
-		this.gtag('config', this.ga4GtagId, {
-			groups: ['default'],
-			ads_data_redaction: true,
-			send_page_view: false,
-			url_passthrough: false,
-			allow_google_signals: false,
-			allow_ad_personalization_signals: false,
-			debug_mode: this.debug,
-		});
-		DOM.attachScript('https://www.googletagmanager.com/gtag/js?id=' + $URL.encode(this.ga4GtagId));
-
-		// Initialize trackers.
-
-		void this.trackPageView(); // Initial page view.
-		DOM.on('click', 'a, button, input[type="button"], input[type="submit"]', (event) => void this.trackClick(event));
-	}
-
-	/**
-	 * Gets `ut[mx]_*` query variables.
-	 *
-	 * @returns `ut[mx]_*` query variables.
-	 */
-	protected utmXQueryVars(): { [$: string]: string } {
-		return $URL.getQueryVars(['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'utx_ref']);
-	}
-
-	/**
-	 * Gets `x_ut[mx]_*` query variable dimensions.
-	 *
-	 * @returns `x_ut[mx]_*` query variable dimensions.
-	 */
-	protected utmXQueryVarDimensions(): { [$: string]: string } {
-		const dimensions: { [$: string]: string } = {};
-		const queryVars = this.utmXQueryVars();
-
-		for (const [name, value] of Object.entries(queryVars)) {
-			dimensions['x_' + name] = String(value);
+		} else {
+			void initialize();
 		}
-		return dimensions;
+	});
+}
+
+/**
+ * Initializes analytics.
+ */
+function initialize(): void {
+	if (!isSetup) {
+		throw notSetupError;
 	}
+	// This must fire *after* `window.gtag( 'consent', ...`.
+	// See: <https://o5p.me/Dc5cKA> <https://o5p.me/mW2tgB>.
+	window.gtag('js', new Date()); // Fires `gtm.js` and sets `gtm.start` timer.
+
+	window.gtag('config', config.ga4GtagId, {
+		groups: ['default'],
+		ads_data_redaction: true,
+		send_page_view: false,
+		url_passthrough: false,
+		allow_google_signals: false,
+		allow_ad_personalization_signals: false,
+		debug_mode: config.debug,
+	});
+	$dom.attachScript('https://www.googletagmanager.com/gtag/js?id=' + $urlꓺencode(config.ga4GtagId));
+
+	// Initialize trackers.
+
+	void trackPageView(); // Initial page view.
+	$dom.on('click', 'a, button, input[type="button"], input[type="submit"]', (event) => void trackClick(event));
+}
+
+/**
+ * Gets `ut[mx]_*` query variables.
+ *
+ * @returns `ut[mx]_*` query variables.
+ */
+function utmXQueryVars(): { [$: string]: string } {
+	if (!isSetup) {
+		throw notSetupError;
+	}
+	return $urlꓺgetQueryVars(['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'utx_ref']);
+}
+
+/**
+ * Gets `x_ut[mx]_*` query variable dimensions.
+ *
+ * @returns `x_ut[mx]_*` query variable dimensions.
+ */
+function utmXQueryVarDimensions(): { [$: string]: string } {
+	if (!isSetup) {
+		throw notSetupError;
+	}
+	const dimensions: { [$: string]: string } = {};
+	const queryVars = utmXQueryVars();
+
+	for (const [name, value] of Object.entries(queryVars)) {
+		dimensions['x_' + name] = String(value);
+	}
+	return dimensions;
 }

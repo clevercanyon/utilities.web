@@ -2,5 +2,5 @@
  * Utility exports.
  */
 
-export { default as Analytics } from './Analytics';
-export { default as DOM } from './DOM';
+export * as $analytics from './analytics.js';
+export * as $dom from './dom.js';

@@ -22,7 +22,6 @@ module.exports = {
 		'@prettier/plugin-xml', //
 		'@prettier/plugin-php',
 		'@prettier/plugin-ruby',
-		'prettier-plugin-organize-imports',
 		'prettier-plugin-jsdoc',
 	],
 	printWidth: 180,
@@ -71,13 +70,6 @@ module.exports = {
 	rubySingleQuote: true,
 
 	/**
-	 * Prettier imports plugin options.
-	 *
-	 * @see https://o5p.me/kQriWW
-	 */
-	organizeImportsSkipDestructiveCodeActions: true,
-
-	/**
 	 * Prettier JSDoc plugin options.
 	 *
 	 * @see https://o5p.me/dTTfse
@@ -86,7 +78,7 @@ module.exports = {
 	jsdocDescriptionWithDot: true,
 	jsdocDescriptionTag: false,
 	jsdocVerticalAlignment: true,
-	jsdocKeepUnParseAbleExampleIndent: true,
+	jsdocKeepUnParseAbleExampleIndent: false,
 	jsdocSingleLineComment: false,
 	jsdocCapitalizeDescription: true,
 	jsdocSeparateReturnsFromParam: true,
@@ -94,5 +86,6 @@ module.exports = {
 	jsdocPreferCodeFences: false,
 	tsdoc: false,
 	jsdocPrintWidth: 120,
+	jsdocAddDefaultToDescription: false,
 	jsdocLineWrappingStyle: 'greedy',
 };
