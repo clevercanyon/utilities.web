@@ -90,11 +90,11 @@ const cache: {
  * Config options.
  */
 const config: ConfigOptions = {
-	debug: Boolean($envꓺget('APP_PUBLIC_ANALYTICS_DEBUG') || false),
-	ga4GtagId: String($envꓺget('APP_PUBLIC_ANALYTICS_GA4_GTAG_ID') || ''),
-	csGDPRScriptId: String($envꓺget('APP_PUBLIC_ANALYTICS_CS_GDPR_SCRIPT_ID') || ''),
-	context: String($envꓺget('APP_PUBLIC_ANALYTICS_CONTEXT') || 'web'),
-	subContext: String($envꓺget('APP_PUBLIC_ANALYTICS_SUB_CONTEXT') || 'site'),
+	debug: Boolean($envꓺget('APP_ANALYTICS_DEBUG') || false),
+	ga4GtagId: String($envꓺget('APP_ANALYTICS_GA4_GTAG_ID') || ''),
+	csGDPRScriptId: String($envꓺget('APP_ANALYTICS_CS_GDPR_SCRIPT_ID') || ''),
+	context: String($envꓺget('APP_ANALYTICS_CONTEXT') || 'web'),
+	subContext: String($envꓺget('APP_ANALYTICS_SUB_CONTEXT') || 'site'),
 	userId: String($cookieꓺget('utx_user_id') || ''),
 };
 
