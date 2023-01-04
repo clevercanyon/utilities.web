@@ -3,7 +3,7 @@
     "publishConfig": {
         "access": "restricted"
     },
-    "version": "1.0.13",
+    "version": "1.0.14",
     "license": "GPL-3.0-or-later",
     "name": "@clevercanyon/utilities.web",
     "description": "Another great project by Clever Canyon.",
