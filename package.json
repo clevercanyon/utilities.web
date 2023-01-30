@@ -3,10 +3,10 @@
 	"publishConfig": {
 		"access": "restricted"
 	},
-	"version": "1.0.31",
+	"version": "1.0.32",
 	"license": "GPL-3.0-or-later",
 	"name": "@clevercanyon/utilities.web",
-	"description": "Another great project by Clever Canyon.",
+	"description": "Utilities for JavaScript apps running in a web environment.",
 	"repository": "https://github.com/clevercanyon/utilities.web",
 	"homepage": "https://github.com/clevercanyon/utilities.web#readme",
 	"bugs": "https://github.com/clevercanyon/utilities.web/issues",
@@ -51,7 +51,7 @@
 	},
 	"dependencies": {},
 	"peerDependencies": {
-		"@clevercanyon/utilities": "^1.0.81"
+		"@clevercanyon/utilities": "^1.0.82"
 	},
 	"peerDependenciesMeta": {},
 	"optionalDependencies": {},
