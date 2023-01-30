@@ -3,7 +3,7 @@
 	"publishConfig": {
 		"access": "restricted"
 	},
-	"version": "1.0.29",
+	"version": "1.0.30",
 	"license": "GPL-3.0-or-later",
 	"name": "@clevercanyon/utilities.web",
 	"description": "Another great project by Clever Canyon.",
@@ -38,7 +38,7 @@
 			"types": "./dist/types/dom.d.ts"
 		}
 	},
-	"sideEffects": ["./src/*.{html,scss,css,tsx,ts,jsx,mjs,js}"],
+	"sideEffects": ["./src/*.{html,scss,ts,tsx}"],
 	"module": "./dist/index.js",
 	"main": "./dist/index.cjs",
 	"browser": "./dist/index.js",
@@ -51,13 +51,13 @@
 	},
 	"dependencies": {},
 	"peerDependencies": {
-		"@clevercanyon/utilities": "^1.0.79"
+		"@clevercanyon/utilities": "^1.0.80"
 	},
 	"peerDependenciesMeta": {},
 	"optionalDependencies": {},
 	"bundleDependencies": [],
 	"devDependencies": {
-		"@clevercanyon/skeleton-dev-deps": "^1.0.100"
+		"@clevercanyon/skeleton-dev-deps": "^1.0.101"
 	},
 	"overrides": {},
 	"workspaces": [],
