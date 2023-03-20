@@ -2,58 +2,56 @@
  * Utility class.
  */
 
+import './resources/init-env.js';
+
 import {
+	clip as $strꓺclip, //
+	charLength as $strꓺcharLength,
+} from '@clevercanyon/utilities/str';
+
+import {
+	get as $cookieꓺget, //
+	set as $cookieꓺset,
+} from '@clevercanyon/utilities/cookie';
+
+import {
+	encode as $urlꓺencode,
 	currentHost as $urlꓺcurrentHost,
 	currentPath as $urlꓺcurrentPath,
 	getQueryVar as $urlꓺgetQueryVar,
 	getQueryVars as $urlꓺgetQueryVars,
-	encode as $urlꓺencode,
 } from '@clevercanyon/utilities/url';
 
-import { get as $envꓺget } from '@clevercanyon/utilities/env';
-import { get as $cookieꓺget, set as $cookieꓺset } from '@clevercanyon/utilities/cookie';
-
 import { $dom } from './index.js';
+import { get as $envꓺget } from '@clevercanyon/utilities/env';
+import { string as $isꓺstring } from '@clevercanyon/utilities/is';
+import { defaults as $objꓺdefaults } from '@clevercanyon/utilities/obj';
+
+let config: Config;
+let isSetupComplete = false;
+
+const notSetUpErrorMsg = 'Analytics not set up yet.';
+const cache: { geoData?: GeoData; [x: string]: unknown } = {};
 
 /**
- * Window.
+ * Defines types.
  */
 declare global {
 	interface Window {
 		doNotTrack: string;
-		dataLayer: Array<unknown>;
-		gtag: (...args: Array<unknown>) => null;
+		dataLayer: unknown[];
+		gtag: (...args: unknown[]) => null;
 	}
 }
-
-/**
- * Setup options.
- */
-interface SetupOptions {
-	debug?: boolean;
-	csGDPRScriptId?: string;
-	ga4GtagId?: string;
-	context?: string;
-	subContext?: string;
-	userId?: string;
-}
-
-/**
- * Config options.
- */
-interface ConfigOptions {
+export type Config = {
 	debug: boolean;
 	csGDPRScriptId: string;
 	ga4GtagId: string;
 	context: string;
 	subContext: string;
 	userId: string;
-}
-
-/**
- * Geo data.
- */
-interface GeoData {
+};
+export type GeoData = {
 	colo?: string;
 	country?: string;
 	city?: string;
@@ -65,51 +63,27 @@ interface GeoData {
 	region?: string;
 	regionCode?: string;
 	timezone?: string;
-}
-
-/**
- * Is setup?
- */
-let isSetup = false;
-
-/**
- * Setup-related errors.
- */
-const alreadySetupError = new Error('Already set up.');
-const notSetupError = new Error('Not set up.');
-
-/**
- * Cache.
- */
-const cache: {
-	geoData?: GeoData;
-	[$: string]: unknown;
-} = {};
-
-/**
- * Config options.
- */
-const config: ConfigOptions = {
-	debug: Boolean($envꓺget('APP_ANALYTICS_DEBUG') || false),
-	ga4GtagId: String($envꓺget('APP_ANALYTICS_GA4_GTAG_ID') || ''),
-	csGDPRScriptId: String($envꓺget('APP_ANALYTICS_CS_GDPR_SCRIPT_ID') || ''),
-	context: String($envꓺget('APP_ANALYTICS_CONTEXT') || 'web'),
-	subContext: String($envꓺget('APP_ANALYTICS_SUB_CONTEXT') || 'site'),
-	userId: String($cookieꓺget('utx_user_id') || ''),
 };
 
 /**
  * Sets up analytics.
  *
- * @param options Optional setup options.
+ * @param configOpts Options (all optional).
  */
-export function setup(options: SetupOptions = {}) {
-	if (isSetup) {
-		throw alreadySetupError;
+export const setup = (configOpts?: Partial<Config>): void => {
+	if (isSetupComplete) {
+		throw new Error('Already set up.');
 	}
-	isSetup = true; // Doing now.
+	isSetupComplete = true; // Setting up now.
 
-	Object.assign(config, options);
+	config = $objꓺdefaults({}, configOpts || {}, {
+		debug: Boolean($envꓺget('@top', 'APP_ANALYTICS_DEBUG') || false),
+		ga4GtagId: String($envꓺget('@top', 'APP_ANALYTICS_GA4_GTAG_ID') || ''),
+		csGDPRScriptId: String($envꓺget('@top', 'APP_ANALYTICS_CS_GDPR_SCRIPT_ID') || ''),
+		context: String($envꓺget('@top', 'APP_ANALYTICS_CONTEXT') || 'web'),
+		subContext: String($envꓺget('@top', 'APP_ANALYTICS_SUB_CONTEXT') || 'site'),
+		userId: String($cookieꓺget('utx_user_id') || ''),
+	}) as Config;
 
 	if (!config.ga4GtagId) {
 		throw new Error('Missing `ga4GtagId`.');
@@ -121,56 +95,56 @@ export function setup(options: SetupOptions = {}) {
 			window.dataLayer.push(args);
 		};
 	$dom.onWinLoaded(() => loadThenInitialize());
-}
+};
 
 /**
  * Gets user ID hash.
  *
  * @returns User ID hash.
  */
-export async function userId(): Promise<string> {
-	if (!isSetup) {
-		throw notSetupError;
+export const userId = async (): Promise<string> => {
+	if (!isSetupComplete) {
+		throw new Error(notSetUpErrorMsg);
 	}
-	return config.userId; // Async = uniformity.
-}
+	return config.userId; // Async uniformity.
+};
 
 /**
  * Gets client ID.
  *
  * @returns Client ID; e.g., `826737564.1651025377`.
  */
-export async function clientId(): Promise<string> {
-	if (!isSetup) {
-		throw notSetupError;
+export const clientId = async (): Promise<string> => {
+	if (!isSetupComplete) {
+		throw new Error(notSetUpErrorMsg);
 	}
 	return new Promise((resolve) => {
 		window.gtag('get', config.ga4GtagId, 'client_id', resolve);
 	}).then((value: unknown): string => String(value || ''));
-}
+};
 
 /**
  * Gets session ID.
  *
  * @returns Session ID; e.g., `1651031160`.
  */
-export async function sessionId(): Promise<string> {
-	if (!isSetup) {
-		throw notSetupError;
+export const sessionId = async (): Promise<string> => {
+	if (!isSetupComplete) {
+		throw new Error(notSetUpErrorMsg);
 	}
 	return new Promise((resolve) => {
 		window.gtag('get', config.ga4GtagId, 'session_id', resolve);
 	}).then((value: unknown): string => String(value || ''));
-}
+};
 
 /**
  * Gets geolocation data.
  *
  * @returns Geolocation data.
  */
-export async function geoData(): Promise<GeoData> {
-	if (!isSetup) {
-		throw notSetupError;
+export const geoData = async (): Promise<GeoData> => {
+	if (!isSetupComplete) {
+		throw new Error(notSetUpErrorMsg);
 	}
 	if (cache.geoData) {
 		return cache.geoData;
@@ -178,24 +152,24 @@ export async function geoData(): Promise<GeoData> {
 	return fetch('https://wobots.com/api/ip-geo/v1')
 		.then((response) => response.json())
 		.then((json) => (cache.geoData = json as GeoData));
-}
+};
 
 /**
  * Tracks a `page_view` event.
  *
  * @param   props Optional event props.
  *
- * @returns       `true` on success.
+ * @returns       True on success.
  */
-export async function trackPageView(props: { [$: string]: unknown } = {}): Promise<boolean> {
-	if (!isSetup) {
-		throw notSetupError;
+export const trackPageView = async (props: { [$: string]: unknown } = {}): Promise<boolean> => {
+	if (!isSetupComplete) {
+		throw new Error(notSetUpErrorMsg);
 	}
 	if ($urlꓺgetQueryVar('utm_source')) {
 		$cookieꓺset('utx_touch', JSON.stringify(utmXQueryVars(), null, 2));
 	}
 	return trackEvent('page_view', props);
-}
+};
 
 /**
  * Tracks an `x_click` event.
@@ -203,79 +177,102 @@ export async function trackPageView(props: { [$: string]: unknown } = {}): Promi
  * @param   event Click event.
  * @param   props Optional event props.
  *
- * @returns       `true` on success.
+ * @returns       True on success.
+ *
+ * @see https://support.google.com/analytics/answer/9267744?hl=en
  */
-export async function trackClick(event: Event, props: { [$: string]: unknown } = {}): Promise<boolean> {
-	if (!isSetup) {
-		throw notSetupError;
+export const trackClick = async (event: Event, props: { [$: string]: unknown } = {}): Promise<boolean> => {
+	if (!isSetupComplete) {
+		throw new Error(notSetUpErrorMsg);
 	}
 	const element = event.target as HTMLElement;
 	const idAttr = element.getAttribute('id') || '';
 	const classAttr = element.getAttribute('class') || '';
 
 	return trackEvent('x_click', {
-		x_flex_id: idAttr || (/(?:^|\s)click-id=([a-z0-9_-]+)(?:$|\s)/iu.exec(classAttr) || [])[1] || null,
-		x_flex_sub_id: element.getAttribute('href'), // In the case of `<a>` tags.
+		x_flex_id: $strꓺclip(idAttr || (/(?:^|\s)click-id=([a-z0-9_-]+)(?:$|\s)/iu.exec(classAttr) || [])[1] || '', { maxChars: 100 }),
+		x_flex_sub_id: $strꓺclip(element.getAttribute('href') || '', { maxChars: 100 }), // In the case of `<a>` tags.
 
-		x_flex_value: element.getAttribute('title') || (element.innerText || '').replace(/\s+/gu, ' ').trim() || element.getAttribute('value'),
-		x_flex_sub_value: element.tagName.toLowerCase(),
+		x_flex_value: $strꓺclip(element.getAttribute('title') || (element.innerText || '').replace(/\s+/gu, ' ').trim() || element.getAttribute('value') || '', { maxChars: 100 }),
+		x_flex_sub_value: $strꓺclip(element.tagName.toLowerCase() || '', { maxChars: 100 }),
 
-		...props,
+		...props, // Any additional props passed in.
 	});
-}
+};
 
 /**
  * Tracks an event.
  *
- * @param   name  A standard or custom event name. Please prefix custom event names with `x_`.
+ * @param   name  Standard or custom event name.
+ *
+ *   - Please be sure to prefix custom event names with `x_`.
+ *
  * @param   props Optional event props.
  *
- * @returns       `true` on success.
+ * @returns       True on success.
+ *
+ * @see https://support.google.com/analytics/answer/9267744?hl=en
  */
-export async function trackEvent(name: string, props: { [$: string]: unknown } = {}): Promise<boolean> {
-	if (!isSetup) {
-		throw notSetupError;
+export const trackEvent = async (name: string, props: { [$: string]: unknown } = {}): Promise<boolean> => {
+	if (!isSetupComplete) {
+		throw new Error(notSetUpErrorMsg);
+	}
+	if ($strꓺcharLength(name) > 40) {
+		throw new Error('Event name exceeds 40 chars.');
 	}
 	return Promise.all([userId(), clientId(), sessionId()]).then(([userId, clientId, sessionId]) => {
-		window.gtag('event', name, {
+		if ($strꓺcharLength(userId) > 36) {
+			throw new Error('`userId` exceeds limit of 36 chars.');
+		}
+		const eventData = {
 			send_to: [config.ga4GtagId],
 
-			x_client_id: clientId,
-			x_session_id: sessionId,
-			...(userId ? { user_id: userId } : null),
-			...(userId ? { user_properties: { x_user_id: userId } } : null),
+			x_client_id: $strꓺclip(clientId, { maxChars: 100 }),
+			x_session_id: $strꓺclip(sessionId, { maxChars: 100 }),
 
-			x_context: config.context,
-			x_sub_context: config.subContext,
-			x_hostname: $urlꓺcurrentHost(false),
+			...(userId ? { user_id: $strꓺclip(userId, { maxChars: 256 }) } : undefined),
+			...(userId ? { user_properties: { x_user_id: $strꓺclip(userId, { maxChars: 36 }) } } : undefined),
+
+			x_context: $strꓺclip(config.context, { maxChars: 100 }),
+			x_sub_context: $strꓺclip(config.subContext, { maxChars: 100 }),
+			x_hostname: $strꓺclip($urlꓺcurrentHost({ withPort: false }), { maxChars: 100 }),
 
 			...utmXQueryVarDimensions(),
-			...props,
-		});
+			...props, // Any additional props passed in.
+		};
+		if (Object.keys(eventData).length > 25) {
+			throw new Error('Event data exceeds total limit of 25 parameters.');
+		}
+		for (const [key, value] of Object.entries(eventData)) {
+			if ($strꓺcharLength(key) > 40) throw new Error('Event parameter `' + key + '` exceeds name limit of 40 chars.');
+			if ($isꓺstring(value) && $strꓺcharLength(value) > 100) throw new Error('Event parameter `' + key + '` exceeds value limit of 100 chars.');
+		}
+		window.gtag('event', name, eventData);
+
 		return true;
 	});
-}
+};
 
 /**
  * DNT header indicates 'Do Not Track'?
  *
- * @returns `true` when DNT header exists.
+ * @returns True when DNT header exists.
  *
  * @see https://o5p.me/Fg9eaO
  */
-function userHasDoNotTrackHeader(): boolean {
-	if (!isSetup) {
-		throw notSetupError;
+const userHasDoNotTrackHeader = (): boolean => {
+	if (!isSetupComplete) {
+		throw new Error(notSetUpErrorMsg);
 	}
 	return '1' === window.doNotTrack || (window.navigator && '1' === navigator.doNotTrack);
-}
+};
 
 /**
  * Loads analytics.
  */
-function loadThenInitialize(): void {
-	if (!isSetup) {
-		throw notSetupError;
+const loadThenInitialize = (): void => {
+	if (!isSetupComplete) {
+		throw new Error(notSetUpErrorMsg);
 	}
 	void geoData().then((geoData) => {
 		if ('US' !== geoData.country || userHasDoNotTrackHeader() || /^\/(?:privacy|cookies?)(?:[_-]policy)?(?:$|\/)/iu.test($urlꓺcurrentPath())) {
@@ -298,14 +295,14 @@ function loadThenInitialize(): void {
 			void initialize();
 		}
 	});
-}
+};
 
 /**
  * Initializes analytics.
  */
-function initialize(): void {
-	if (!isSetup) {
-		throw notSetupError;
+const initialize = (): void => {
+	if (!isSetupComplete) {
+		throw new Error(notSetUpErrorMsg);
 	}
 	// This must fire *after* `window.gtag( 'consent', ...`.
 	// See: <https://o5p.me/Dc5cKA> <https://o5p.me/mW2tgB>.
@@ -326,34 +323,34 @@ function initialize(): void {
 
 	void trackPageView(); // Initial page view.
 	$dom.on('click', 'a, button, input[type="button"], input[type="submit"]', (event) => void trackClick(event));
-}
+};
 
 /**
  * Gets `ut[mx]_*` query variables.
  *
  * @returns `ut[mx]_*` query variables.
  */
-function utmXQueryVars(): { [$: string]: string } {
-	if (!isSetup) {
-		throw notSetupError;
+const utmXQueryVars = (): { readonly [$: string]: string } => {
+	if (!isSetupComplete) {
+		throw new Error(notSetUpErrorMsg);
 	}
 	return $urlꓺgetQueryVars(['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'utx_ref']);
-}
+};
 
 /**
  * Gets `x_ut[mx]_*` query variable dimensions.
  *
  * @returns `x_ut[mx]_*` query variable dimensions.
  */
-function utmXQueryVarDimensions(): { [$: string]: string } {
-	if (!isSetup) {
-		throw notSetupError;
+const utmXQueryVarDimensions = (): { readonly [$: string]: string } => {
+	if (!isSetupComplete) {
+		throw new Error(notSetUpErrorMsg);
 	}
 	const dimensions: { [$: string]: string } = {};
 	const queryVars = utmXQueryVars();
 
 	for (const [name, value] of Object.entries(queryVars)) {
-		dimensions['x_' + name] = String(value);
+		dimensions['x_' + name] = $strꓺclip(String(value), { maxChars: 100 });
 	}
 	return dimensions;
-}
+};

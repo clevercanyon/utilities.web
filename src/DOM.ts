@@ -2,6 +2,14 @@
  * Utility class.
  */
 
+import './resources/init-env.js';
+
+import {
+	string as $isꓺstring, //
+	number as $isꓺnumber, //
+	function as $isꓺfunction,
+} from '@clevercanyon/utilities/is';
+
 /**
  * Fires a callback on document ready state.
  *
@@ -63,34 +71,6 @@ export function on(eventName: string, selectorOrCallback: string | (($: Event) =
 }
 
 /**
- * Debounce handler.
- *
- * @param   callback  Callback.
- * @param   delay     Optional delay. Default is `100`.
- * @param   immediate Immediate? Default is `false`.
- *
- * @returns           Debouncer.
- */
-export function debounce(callback: () => void, delay: number = 100, immediate: boolean = false) {
-	let timeout: number | undefined;
-
-	return function (this: unknown, ...args: []) {
-		const afterDelay = () => {
-			if (!immediate) {
-				callback.apply(this, args);
-			}
-			timeout = undefined;
-		};
-		if (timeout) {
-			window.clearTimeout(timeout);
-		} else if (immediate) {
-			callback.apply(this, args);
-		}
-		timeout = window.setTimeout(afterDelay, delay);
-	};
-}
-
-/**
  * Attaches an element to `<head>`.
  *
  * @param element Element to attach.
@@ -130,15 +110,16 @@ export function createElement(tag: string, attrs?: { [$: string]: (($: Event) =>
 	const element = document.createElement(tag);
 
 	for (const attr in attrs) {
-		if (typeof attrs[attr] === 'function') {
-			// @ts-ignore -- Cannot filter writable keys only.
+		if ($isꓺfunction(attrs[attr])) {
+			// @ts-ignore -- Readonly warning OK to ignore.
 			element[attr as keyof HTMLElement] = attrs[attr];
 		}
 	}
 	for (const attr in attrs) {
 		if (true === attrs[attr]) {
 			element.setAttribute(attr, '');
-		} else if (['string', 'number'].indexOf(typeof attrs[attr]) !== -1) {
+			//
+		} else if ($isꓺstring(attrs[attr]) || $isꓺnumber(attrs[attr])) {
 			element.setAttribute(attr, String(attrs[attr]));
 		}
 	}
