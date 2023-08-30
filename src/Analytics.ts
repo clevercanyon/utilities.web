@@ -5,16 +5,6 @@
 import './resources/init-env.js';
 
 import {
-	clip as $strꓺclip, //
-	charLength as $strꓺcharLength,
-} from '@clevercanyon/utilities/str';
-
-import {
-	get as $cookieꓺget, //
-	set as $cookieꓺset,
-} from '@clevercanyon/utilities/cookie';
-
-import {
 	encode as $urlꓺencode,
 	currentHost as $urlꓺcurrentHost,
 	currentPath as $urlꓺcurrentPath,
@@ -26,6 +16,8 @@ import { $dom } from './index.js';
 import { get as $envꓺget } from '@clevercanyon/utilities/env';
 import { string as $isꓺstring } from '@clevercanyon/utilities/is';
 import { defaults as $objꓺdefaults } from '@clevercanyon/utilities/obj';
+import { get as $cookieꓺget, set as $cookieꓺset } from '@clevercanyon/utilities/cookie';
+import { clip as $strꓺclip, charLength as $strꓺcharLength } from '@clevercanyon/utilities/str';
 
 let config: Config;
 let isSetupComplete = false;
