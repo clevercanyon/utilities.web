@@ -6,7 +6,7 @@ import './resources/init-env.js';
 
 import {
 	string as $isꓺstring, //
-	number as $isꓺnumber, //
+	number as $isꓺnumber,
 	function as $isꓺfunction,
 } from '@clevercanyon/utilities/is';
 
