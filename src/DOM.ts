@@ -2,39 +2,35 @@
  * Utility class.
  */
 
-import './resources/init-env.js';
+import './resources/init-env.ts';
 
-import {
-	string as $isꓺstring, //
-	number as $isꓺnumber,
-	function as $isꓺfunction,
-} from '@clevercanyon/utilities/is';
+import { function as $isꓺfunction, number as $isꓺnumber, string as $isꓺstring } from '@clevercanyon/utilities/is';
 
 /**
  * Fires a callback on document ready state.
  *
  * @param callback Callback.
  */
-export function onDocReady(callback: () => void): void {
+export const onDocReady = (callback: () => void): void => {
 	if ('loading' !== document.readyState) {
 		callback(); // Fires callback immediately.
 	} else {
 		document.addEventListener('DOMContentLoaded', () => callback());
 	}
-}
+};
 
 /**
  * Fires a callback on window loaded state.
  *
  * @param callback Callback.
  */
-export function onWinLoaded(callback: () => void) {
+export const onWinLoaded = (callback: () => void) => {
 	if ('complete' === document.readyState) {
 		callback(); // Fires callback immediately.
 	} else {
 		window.addEventListener('load', () => callback());
 	}
-}
+};
 
 /**
  * Fires a callback on an event.
@@ -75,18 +71,18 @@ export function on(eventName: string, selectorOrCallback: string | (($: Event) =
  *
  * @param element Element to attach.
  */
-export function attachToHead(element: HTMLElement): void {
+export const attachToHead = (element: HTMLElement): void => {
 	document.getElementsByTagName('head')[0].appendChild(element);
-}
+};
 
 /**
  * Attaches an element to `<body>`.
  *
  * @param element Element to attach.
  */
-export function attachToBody(element: HTMLElement): void {
+export const attachToBody = (element: HTMLElement): void => {
 	document.getElementsByTagName('body')[0].appendChild(element);
-}
+};
 
 /**
  * Attaches a `<script>` to `<body>`.
@@ -94,9 +90,9 @@ export function attachToBody(element: HTMLElement): void {
  * @param src   Script source.
  * @param attrs Optional attributes. Default is `{}`.
  */
-export function attachScript(src: string, attrs: { [$: string]: (($: Event) => void) | string | number | true } = {}): void {
+export const attachScript = (src: string, attrs: { [$: string]: (($: Event) => void) | string | number | true } = {}): void => {
 	attachToBody(createElement('script', Object.assign({}, attrs, { src: src, async: true })));
-}
+};
 
 /**
  * Create a new HTML element.
@@ -106,7 +102,7 @@ export function attachScript(src: string, attrs: { [$: string]: (($: Event) => v
  *
  * @returns       HTML element.
  */
-export function createElement(tag: string, attrs?: { [$: string]: (($: Event) => void) | string | number | true }): HTMLElement {
+export const createElement = (tag: string, attrs?: { [$: string]: (($: Event) => void) | string | number | true }): HTMLElement => {
 	const element = document.createElement(tag);
 
 	for (const attr in attrs) {
@@ -124,4 +120,4 @@ export function createElement(tag: string, attrs?: { [$: string]: (($: Event) =>
 		}
 	}
 	return element;
-}
+};

@@ -2,22 +2,21 @@
  * Utility class.
  */
 
-import './resources/init-env.js';
+import './resources/init-env.ts';
 
-import {
-	encode as $urlꓺencode,
-	currentHost as $urlꓺcurrentHost,
-	currentPath as $urlꓺcurrentPath,
-	getQueryVar as $urlꓺgetQueryVar,
-	getQueryVars as $urlꓺgetQueryVars,
-} from '@clevercanyon/utilities/url';
-
-import { $dom } from './index.js';
+import { get as $cookieꓺget, set as $cookieꓺset } from '@clevercanyon/utilities/cookie';
 import { get as $envꓺget } from '@clevercanyon/utilities/env';
 import { string as $isꓺstring } from '@clevercanyon/utilities/is';
 import { defaults as $objꓺdefaults } from '@clevercanyon/utilities/obj';
-import { get as $cookieꓺget, set as $cookieꓺset } from '@clevercanyon/utilities/cookie';
-import { clip as $strꓺclip, charLength as $strꓺcharLength } from '@clevercanyon/utilities/str';
+import { charLength as $strꓺcharLength, clip as $strꓺclip } from '@clevercanyon/utilities/str';
+import {
+	currentHost as $urlꓺcurrentHost,
+	currentPath as $urlꓺcurrentPath,
+	encode as $urlꓺencode,
+	getQueryVar as $urlꓺgetQueryVar,
+	getQueryVars as $urlꓺgetQueryVars,
+} from '@clevercanyon/utilities/url';
+import { $dom } from './index.ts';
 
 let config: Config;
 let isSetupComplete = false;
