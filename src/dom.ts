@@ -65,7 +65,7 @@ function _on(eventName: string, selectorOrCallback: string | (($: Event) => void
         throw new Error('Invalid call signature.');
     }
 }
-export { _on as on };
+export { _on as on }; // Must export as alias.
 
 /**
  * Attaches an element to `<head>`.

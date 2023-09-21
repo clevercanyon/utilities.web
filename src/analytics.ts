@@ -313,7 +313,7 @@ const initialize = (): void => {
     // Initialize trackers.
 
     void trackPageView(); // Initial page view.
-    $dom.on('click', 'a, button, input[type="button"], input[type="submit"]', (event) => void trackClick(event));
+    $dom.on('click', 'a, button, input[type="button"], input[type="submit"]', (event: Event) => void trackClick(event));
 };
 
 /**
