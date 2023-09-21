@@ -140,7 +140,7 @@ export const geoData = async (): Promise<GeoData> => {
     if (cache.geoData) {
         return cache.geoData;
     }
-    return fetch('https://wobots.com/api/ip-geo/v1')
+    return fetch('https://wobots.com/api/ip-geo/v1') // @todo Update this endpoint.
         .then((response) => response.json())
         .then((json) => (cache.geoData = json as GeoData));
 };

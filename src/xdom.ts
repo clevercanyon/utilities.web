@@ -39,10 +39,10 @@ export const onWinLoaded = (callback: () => void) => {
  * @param selectorOrCallback Selector for delegated events; else callback.
  * @param callback           Optional third parameter as callback when `selectorOrCallback` is `selector`.
  */
-export function on(eventName: string, callback: ($: Event) => void): void;
-export function on(eventName: string, selector: string, callback: ($: Event) => void): void;
+function _on(eventName: string, callback: ($: Event) => void): void;
+function _on(eventName: string, selector: string, callback: ($: Event) => void): void;
 
-export function on(eventName: string, selectorOrCallback: string | (($: Event) => void), callback?: ($: Event) => void): void {
+function _on(eventName: string, selectorOrCallback: string | (($: Event) => void), callback?: ($: Event) => void): void {
     if (2 === arguments.length) {
         document.addEventListener(eventName, selectorOrCallback as ($: Event) => void);
         //
@@ -65,6 +65,7 @@ export function on(eventName: string, selectorOrCallback: string | (($: Event) =
         throw new Error('Invalid call signature.');
     }
 }
+export { _on as on };
 
 /**
  * Attaches an element to `<head>`.
