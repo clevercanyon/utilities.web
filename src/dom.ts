@@ -4,7 +4,7 @@
 
 import './resources/init-env.ts';
 
-import { function as $isꓺfunction, number as $isꓺnumber, string as $isꓺstring } from '@clevercanyon/utilities/is';
+import { $is } from '@clevercanyon/utilities';
 
 /**
  * Fires a callback on document ready state.
@@ -107,7 +107,7 @@ export const createElement = (tag: string, attrs?: { [$: string]: (($: Event) =>
     const element = document.createElement(tag);
 
     for (const attr in attrs) {
-        if ($isꓺfunction(attrs[attr])) {
+        if ($is.function(attrs[attr])) {
             // @ts-ignore -- Readonly warning OK to ignore.
             element[attr as keyof HTMLElement] = attrs[attr];
         }
@@ -116,7 +116,7 @@ export const createElement = (tag: string, attrs?: { [$: string]: (($: Event) =>
         if (true === attrs[attr]) {
             element.setAttribute(attr, '');
             //
-        } else if ($isꓺstring(attrs[attr]) || $isꓺnumber(attrs[attr])) {
+        } else if ($is.string(attrs[attr]) || $is.number(attrs[attr])) {
             element.setAttribute(attr, String(attrs[attr]));
         }
     }

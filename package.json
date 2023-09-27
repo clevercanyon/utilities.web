@@ -3,7 +3,7 @@
     "publishConfig": {
         "access": "public"
     },
-    "version": "1.0.74",
+    "version": "1.0.75",
     "license": "GPL-3.0-or-later",
     "name": "@clevercanyon/utilities.web",
     "description": "Utilities for JavaScript apps running in a web environment.",
@@ -37,7 +37,7 @@
             "default": "./dist/dom.js"
         }
     },
-    "sideEffects": ["./src/resources/init-env.ts", "./src/analytics.ts", "./src/dom.ts", "./src/index.ts"],
+    "sideEffects": ["**/*.{css,scss,less}", "./src/resources/init-env.ts"],
     "module": "./dist/index.js",
     "main": "./dist/index.js",
     "browser": "./dist/index.js",
@@ -50,20 +50,20 @@
     },
     "dependencies": {},
     "peerDependencies": {
-        "@clevercanyon/utilities": "^1.0.266"
+        "@clevercanyon/utilities": "^1.0.279"
     },
     "peerDependenciesMeta": {},
     "optionalDependencies": {},
     "bundleDependencies": [],
     "devDependencies": {
-        "@clevercanyon/dev-deps": "^1.0.230"
+        "@clevercanyon/dev-deps": "^1.0.232"
     },
     "overrides": {},
     "cpu": ["x64", "arm64"],
     "os": ["darwin", "linux"],
     "engines": {
-        "node": "^19.1.0 || ^20.5.1",
-        "npm": "^8.19.3 || ^9.2.0"
+        "node": "^19.1.0 || ^20.5.0",
+        "npm": "^8.19.3 || ^9.8.0 || ^10.0.0"
     },
     "config": {
         "c10n": {
@@ -74,12 +74,14 @@
                 "build": {
                     "appType": "lib",
                     "targetEnv": "web",
-                    "entryFiles": []
+                    "entryFiles": [],
+                    "sideEffects": []
                 },
                 "ssrBuild": {
                     "appType": "",
                     "targetEnv": "",
-                    "entryFiles": []
+                    "entryFiles": [],
+                    "sideEffects": []
                 },
                 "github": {
                     "teams": {

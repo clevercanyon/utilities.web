@@ -4,18 +4,7 @@
 
 import './resources/init-env.ts';
 
-import { get as $cookieꓺget, set as $cookieꓺset } from '@clevercanyon/utilities/cookie';
-import { get as $envꓺget } from '@clevercanyon/utilities/env';
-import { string as $isꓺstring } from '@clevercanyon/utilities/is';
-import { defaults as $objꓺdefaults } from '@clevercanyon/utilities/obj';
-import { charLength as $strꓺcharLength, clip as $strꓺclip } from '@clevercanyon/utilities/str';
-import {
-    currentHost as $urlꓺcurrentHost,
-    currentPath as $urlꓺcurrentPath,
-    encode as $urlꓺencode,
-    getQueryVar as $urlꓺgetQueryVar,
-    getQueryVars as $urlꓺgetQueryVars,
-} from '@clevercanyon/utilities/url';
+import { $cookie, $env, $is, $obj, $str, $url } from '@clevercanyon/utilities';
 import { $dom } from './index.ts';
 
 let config: Config;
@@ -67,13 +56,13 @@ export const setup = (configOpts?: Partial<Config>): void => {
     }
     isSetupComplete = true; // Setting up now.
 
-    config = $objꓺdefaults({}, configOpts || {}, {
-        debug: Boolean($envꓺget('@top', 'APP_ANALYTICS_DEBUG') || false),
-        ga4GtagId: String($envꓺget('@top', 'APP_ANALYTICS_GA4_GTAG_ID') || ''),
-        csGDPRScriptId: String($envꓺget('@top', 'APP_ANALYTICS_CS_GDPR_SCRIPT_ID') || ''),
-        context: String($envꓺget('@top', 'APP_ANALYTICS_CONTEXT') || 'web'),
-        subContext: String($envꓺget('@top', 'APP_ANALYTICS_SUB_CONTEXT') || 'site'),
-        userId: String($cookieꓺget('utx_user_id') || ''),
+    config = $obj.defaults({}, configOpts || {}, {
+        debug: $env.get('APP_ANALYTICS_DEBUG', { type: 'boolean', default: false }),
+        ga4GtagId: $env.get('APP_ANALYTICS_GA4_GTAG_ID', { type: 'string', default: '' }),
+        csGDPRScriptId: $env.get('APP_ANALYTICS_CS_GDPR_SCRIPT_ID', { type: 'string', default: '' }),
+        context: $env.get('APP_ANALYTICS_CONTEXT', { type: 'string', default: 'web' }),
+        subContext: $env.get('APP_ANALYTICS_SUB_CONTEXT', { type: 'string', default: 'site' }),
+        userId: $cookie.get('utx_user_id', ''),
     }) as Config;
 
     if (!config.ga4GtagId) {
@@ -156,8 +145,8 @@ export const trackPageView = async (props: { [$: string]: unknown } = {}): Promi
     if (!isSetupComplete) {
         throw new Error(notSetUpErrorMsg);
     }
-    if ($urlꓺgetQueryVar('utm_source')) {
-        $cookieꓺset('utx_touch', JSON.stringify(utmXQueryVars(), null, 2));
+    if ($url.getQueryVar('utm_source')) {
+        $cookie.set('utx_touch', JSON.stringify(utmXQueryVars(), null, 2));
     }
     return trackEvent('page_view', props);
 };
@@ -181,11 +170,11 @@ export const trackClick = async (event: Event, props: { [$: string]: unknown } =
     const classAttr = element.getAttribute('class') || '';
 
     return trackEvent('x_click', {
-        x_flex_id: $strꓺclip(idAttr || (/(?:^|\s)click-id=([a-z0-9_-]+)(?:$|\s)/iu.exec(classAttr) || [])[1] || '', { maxChars: 100 }),
-        x_flex_sub_id: $strꓺclip(element.getAttribute('href') || '', { maxChars: 100 }), // In the case of `<a>` tags.
+        x_flex_id: $str.clip(idAttr || (/(?:^|\s)click-id=([a-z0-9_-]+)(?:$|\s)/iu.exec(classAttr) || [])[1] || '', { maxChars: 100 }),
+        x_flex_sub_id: $str.clip(element.getAttribute('href') || '', { maxChars: 100 }), // In the case of `<a>` tags.
 
-        x_flex_value: $strꓺclip(element.getAttribute('title') || (element.innerText || '').replace(/\s+/gu, ' ').trim() || element.getAttribute('value') || '', { maxChars: 100 }),
-        x_flex_sub_value: $strꓺclip(element.tagName.toLowerCase() || '', { maxChars: 100 }),
+        x_flex_value: $str.clip(element.getAttribute('title') || (element.innerText || '').replace(/\s+/gu, ' ').trim() || element.getAttribute('value') || '', { maxChars: 100 }),
+        x_flex_sub_value: $str.clip(element.tagName.toLowerCase() || '', { maxChars: 100 }),
 
         ...props, // Any additional props passed in.
     });
@@ -208,25 +197,25 @@ export const trackEvent = async (name: string, props: { [$: string]: unknown } =
     if (!isSetupComplete) {
         throw new Error(notSetUpErrorMsg);
     }
-    if ($strꓺcharLength(name) > 40) {
+    if ($str.charLength(name) > 40) {
         throw new Error('Event name exceeds 40 chars.');
     }
     return Promise.all([userId(), clientId(), sessionId()]).then(([userId, clientId, sessionId]) => {
-        if ($strꓺcharLength(userId) > 36) {
+        if ($str.charLength(userId) > 36) {
             throw new Error('`userId` exceeds limit of 36 chars.');
         }
         const eventData = {
             send_to: [config.ga4GtagId],
 
-            x_client_id: $strꓺclip(clientId, { maxChars: 100 }),
-            x_session_id: $strꓺclip(sessionId, { maxChars: 100 }),
+            x_client_id: $str.clip(clientId, { maxChars: 100 }),
+            x_session_id: $str.clip(sessionId, { maxChars: 100 }),
 
-            ...(userId ? { user_id: $strꓺclip(userId, { maxChars: 256 }) } : undefined),
-            ...(userId ? { user_properties: { x_user_id: $strꓺclip(userId, { maxChars: 36 }) } } : undefined),
+            ...(userId ? { user_id: $str.clip(userId, { maxChars: 256 }) } : undefined),
+            ...(userId ? { user_properties: { x_user_id: $str.clip(userId, { maxChars: 36 }) } } : undefined),
 
-            x_context: $strꓺclip(config.context, { maxChars: 100 }),
-            x_sub_context: $strꓺclip(config.subContext, { maxChars: 100 }),
-            x_hostname: $strꓺclip($urlꓺcurrentHost({ withPort: false }), { maxChars: 100 }),
+            x_context: $str.clip(config.context, { maxChars: 100 }),
+            x_sub_context: $str.clip(config.subContext, { maxChars: 100 }),
+            x_hostname: $str.clip($url.currentHost({ withPort: false }), { maxChars: 100 }),
 
             ...utmXQueryVarDimensions(),
             ...props, // Any additional props passed in.
@@ -235,8 +224,8 @@ export const trackEvent = async (name: string, props: { [$: string]: unknown } =
             throw new Error('Event data exceeds total limit of 25 parameters.');
         }
         for (const [key, value] of Object.entries(eventData)) {
-            if ($strꓺcharLength(key) > 40) throw new Error('Event parameter `' + key + '` exceeds name limit of 40 chars.');
-            if ($isꓺstring(value) && $strꓺcharLength(value) > 100) throw new Error('Event parameter `' + key + '` exceeds value limit of 100 chars.');
+            if ($str.charLength(key) > 40) throw new Error('Event parameter `' + key + '` exceeds name limit of 40 chars.');
+            if ($is.string(value) && $str.charLength(value) > 100) throw new Error('Event parameter `' + key + '` exceeds value limit of 100 chars.');
         }
         window.gtag('event', name, eventData);
 
@@ -266,7 +255,7 @@ const loadThenInitialize = (): void => {
         throw new Error(notSetUpErrorMsg);
     }
     void geoData().then((geoData) => {
-        if ('US' !== geoData.country || userHasDoNotTrackHeader() || /^\/(?:privacy|cookies?)(?:[_-]policy)?(?:$|\/)/iu.test($urlꓺcurrentPath())) {
+        if ('US' !== geoData.country || userHasDoNotTrackHeader() || /^\/(?:privacy|cookies?)(?:[_-]policy)?(?:$|\/)/iu.test($url.currentPath())) {
             window.gtag('consent', 'default', {
                 wait_for_update: 500,
                 ad_storage: 'denied',
@@ -278,7 +267,7 @@ const loadThenInitialize = (): void => {
             if (config.csGDPRScriptId) {
                 // See: <https://cookie-script.com/web-cookie-types>.
                 // See: <https://support.google.com/analytics/answer/9976101?hl=en>.
-                $dom.attachScript('https://cdn.cookie-script.com/s/' + $urlꓺencode(config.csGDPRScriptId) + '.js', {
+                $dom.attachScript('https://cdn.cookie-script.com/s/' + $url.encode(config.csGDPRScriptId) + '.js', {
                     onload: () => initialize(),
                 });
             }
@@ -308,7 +297,7 @@ const initialize = (): void => {
         allow_ad_personalization_signals: false,
         debug_mode: config.debug,
     });
-    $dom.attachScript('https://www.googletagmanager.com/gtag/js?id=' + $urlꓺencode(config.ga4GtagId));
+    $dom.attachScript('https://www.googletagmanager.com/gtag/js?id=' + $url.encode(config.ga4GtagId));
 
     // Initialize trackers.
 
@@ -325,7 +314,7 @@ const utmXQueryVars = (): { readonly [$: string]: string } => {
     if (!isSetupComplete) {
         throw new Error(notSetUpErrorMsg);
     }
-    return $urlꓺgetQueryVars(['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'utx_ref']);
+    return $url.getQueryVars(['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'utx_ref']);
 };
 
 /**
@@ -341,7 +330,7 @@ const utmXQueryVarDimensions = (): { readonly [$: string]: string } => {
     const queryVars = utmXQueryVars();
 
     for (const [name, value] of Object.entries(queryVars)) {
-        dimensions['x_' + name] = $strꓺclip(String(value), { maxChars: 100 });
+        dimensions['x_' + name] = $str.clip(String(value), { maxChars: 100 });
     }
     return dimensions;
 };
