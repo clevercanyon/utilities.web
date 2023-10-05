@@ -2,7 +2,7 @@
  * Utility class.
  */
 
-import './resources/init-env.ts';
+import './resources/init.ts';
 
 import { $cookie, $env, $is, $obj, $str, $url } from '@clevercanyon/utilities';
 import { $dom } from './index.ts';

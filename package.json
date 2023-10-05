@@ -3,7 +3,7 @@
     "publishConfig": {
         "access": "public"
     },
-    "version": "1.0.80",
+    "version": "1.0.81",
     "license": "GPL-3.0-or-later",
     "name": "@clevercanyon/utilities.web",
     "description": "Utilities for JavaScript apps running in a web environment.",
@@ -37,7 +37,7 @@
             "default": "./dist/dom.js"
         }
     },
-    "sideEffects": ["**/*.{css,scss,less}", "./src/resources/init-env.ts"],
+    "sideEffects": ["**/*.{css,scss,less}", "./src/resources/init.ts"],
     "module": "./dist/index.js",
     "main": "./dist/index.js",
     "browser": "./dist/index.js",
@@ -50,13 +50,13 @@
     },
     "dependencies": {},
     "peerDependencies": {
-        "@clevercanyon/utilities": "^1.0.295"
+        "@clevercanyon/utilities": "^1.0.322"
     },
     "peerDependenciesMeta": {},
     "optionalDependencies": {},
     "bundleDependencies": [],
     "devDependencies": {
-        "@clevercanyon/dev-deps": "^1.0.243"
+        "@clevercanyon/dev-deps": "^1.0.246"
     },
     "overrides": {},
     "cpu": ["x64", "arm64"],
