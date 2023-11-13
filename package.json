@@ -3,7 +3,7 @@
     "publishConfig": {
         "access": "public"
     },
-    "version": "1.0.86",
+    "version": "1.0.87",
     "license": "GPL-3.0-or-later",
     "name": "@clevercanyon/utilities.web",
     "description": "Utilities for JavaScript apps running in a web environment.",
@@ -25,16 +25,6 @@
             "types": "./dist/types/index.d.ts",
             "import": "./dist/index.js",
             "default": "./dist/index.js"
-        },
-        "./analytics": {
-            "types": "./dist/types/analytics.d.ts",
-            "import": "./dist/analytics.js",
-            "default": "./dist/analytics.js"
-        },
-        "./dom": {
-            "types": "./dist/types/dom.d.ts",
-            "import": "./dist/dom.js",
-            "default": "./dist/dom.js"
         }
     },
     "sideEffects": ["**/*.{css,scss,less}", "./src/resources/init.ts"],
@@ -50,20 +40,22 @@
     },
     "dependencies": {},
     "peerDependencies": {
-        "@clevercanyon/utilities": "^1.0.351"
+        "@clevercanyon/utilities": "^1.0.440",
+        "react": "npm:@preact/compat@^17.1.2",
+        "react-dom": "npm:@preact/compat@^17.1.2"
     },
     "peerDependenciesMeta": {},
     "optionalDependencies": {},
     "bundleDependencies": [],
     "devDependencies": {
-        "@clevercanyon/dev-deps": "^1.0.254"
+        "@clevercanyon/dev-deps": "^1.0.263"
     },
     "overrides": {},
     "cpu": ["x64", "arm64"],
     "os": ["darwin", "linux"],
     "engines": {
-        "node": "^19.1.0 || ^20.5.0",
-        "npm": "^8.19.3 || ^9.8.0 || ^10.0.0"
+        "node": "^20.5.0 || ^20.9.0",
+        "npm": "^9.8.0 || ^10.1.0"
     },
     "config": {
         "c10n": {
