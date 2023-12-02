@@ -2,4 +2,4 @@
  * Utility exports.
  */
 
-import './resources/init.ts';
+import '#@init.ts';
