@@ -3,7 +3,7 @@
     "publishConfig": {
         "access": "public"
     },
-    "version": "1.0.140",
+    "version": "1.0.141",
     "license": "GPL-3.0-or-later",
     "name": "@clevercanyon/utilities.web",
     "description": "Utilities for JavaScript apps running in a web environment.",
@@ -44,13 +44,13 @@
     },
     "dependencies": {},
     "peerDependencies": {
-        "@clevercanyon/utilities": "^1.0.795"
+        "@clevercanyon/utilities": "^1.0.828"
     },
     "peerDependenciesMeta": {},
     "optionalDependencies": {},
     "bundleDependencies": [],
     "devDependencies": {
-        "@clevercanyon/dev-deps": "^1.0.354"
+        "@clevercanyon/dev-deps": "^1.0.357"
     },
     "overrides": {},
     "cpu": ["x64", "arm64"],
