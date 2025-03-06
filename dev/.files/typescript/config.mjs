@@ -92,10 +92,11 @@ export default async () => {
             target: esVersion.lcnYear,
             lib: [esVersion.lcnYear],
             types: [
-                'vite/client', //
-                '@types/mdx',
-                'unplugin-icons/types/preact',
-                'dayjs/plugin/advancedFormat',
+                'vite/client', // Ambient modules provided by Vite build system.
+                'unplugin-icons/types/preact', // Ambient modules for preact icons.
+                '@types/mdx', // Ambient modules for MDX imports.
+
+                'dayjs/plugin/advancedFormat', // DayJS types.
                 'dayjs/plugin/customParseFormat',
                 'dayjs/plugin/localizedFormat',
                 'dayjs/plugin/relativeTime',

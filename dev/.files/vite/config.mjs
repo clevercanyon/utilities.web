@@ -21,18 +21,21 @@ import importAliases from '../bin/includes/import-aliases.mjs';
 import u from '../bin/includes/utilities.mjs';
 import viteA16sDir from './includes/a16s/dir.mjs';
 import viteC10nBrandConfig from './includes/c10n/brand-config.mjs';
+import viteC10nCloudflareEmail from './includes/c10n/cloudflare-email.mjs';
 import viteC10nCloudflareSockets from './includes/c10n/cloudflare-sockets.mjs';
+import viteC10nCloudflareWorkers from './includes/c10n/cloudflare-workers.mjs';
+import viteC10nCloudflareWorkflows from './includes/c10n/cloudflare-workflows.mjs';
 import viteC10nHTMLTransformsConfig from './includes/c10n/html-transforms.mjs';
 import viteC10nNoModulePreloadConfig from './includes/c10n/no-module-preload.mjs';
 import viteC10nPostProcessingConfig from './includes/c10n/post-processing.mjs';
 import viteC10nPreProcessingConfig from './includes/c10n/pre-processing.mjs';
 import viteC10nSideEffectsConfig from './includes/c10n/side-effects.mjs';
+import viteDepsConfig from './includes/deps/config.mjs';
 import viteDTSConfig from './includes/dts/config.mjs';
 import viteEJSConfig from './includes/ejs/config.mjs';
 import viteESBuildConfig from './includes/esbuild/config.mjs';
 import viteIconsConfig from './includes/icons/config.mjs';
 import viteMDXConfig from './includes/mdx/config.mjs';
-import viteMDXESBuildConfig from './includes/mdx/esbuild.mjs';
 import viteMinifyConfig from './includes/minify/config.mjs';
 import vitePkgUpdates from './includes/package/updates.mjs';
 import vitePrefreshConfig from './includes/prefresh/config.mjs';
@@ -54,12 +57,11 @@ export default async ({ mode, command, isSsrBuild: isSSRBuild }) => {
     const time = $time.now();
 
     /**
-     * Configures `NODE_ENV` environment variable.
+     * Uses parent process mode.
      */
-    process.env.NODE_ENV = // As detailed by Vite <https://o5p.me/DscTVM>.
-		'dev' === mode ? 'development' // Enforce development mode.
-		: 'production'; // prettier-ignore
-
+    if (process.env.APP_IS_VITE) {
+        mode = process.env.APP_IS_VITE.split('=')[1] || mode;
+    }
     /**
      * Configures `APP_IS_VITE` environment variable.
      *
@@ -68,6 +70,13 @@ export default async ({ mode, command, isSsrBuild: isSSRBuild }) => {
      *       whether the Vite dev server is currently running.
      */
     process.env.APP_IS_VITE = command + '=' + mode;
+
+    /**
+     * Configures `NODE_ENV` environment variable.
+     */
+    process.env.NODE_ENV = // As detailed by Vite <https://o5p.me/DscTVM>.
+		'dev' === mode ? 'development' // Enforce development mode.
+		: 'production'; // prettier-ignore
 
     /**
      * Directory vars.
@@ -157,6 +166,7 @@ export default async ({ mode, command, isSsrBuild: isSSRBuild }) => {
     const peerDepKeys = Object.keys(pkg.peerDependencies || {});
     const targetEnvIsServer = ['cfw', 'node'].includes(targetEnv);
     const wranglerMode = process.env.VITE_WRANGLER_MODE || ''; // Wrangler mode.
+    const wranglerSettings = await (await import('../wrangler/settings.mjs')).default();
     const inProdLikeMode = ['prod', 'stage'].includes(mode) || ('dev' === mode && 'dev' === wranglerMode);
     const sourcemapsEnable = ['dev'].includes(mode); // Only generate sourcemaps when explicitly in dev mode.
     const minifyEnable = !['lib'].includes(appType) && inProdLikeMode; // We don’t ever minify code in a library.
@@ -211,32 +221,43 @@ export default async ({ mode, command, isSsrBuild: isSSRBuild }) => {
 
         await viteIconsConfig({}),
         await viteC10nBrandConfig({ mode, appBaseURL }),
+
+        await viteC10nCloudflareEmail({ mode, command }),
         await viteC10nCloudflareSockets({ mode, command }),
-        //
+        await viteC10nCloudflareWorkers({ mode, command }),
+        await viteC10nCloudflareWorkflows({ mode, command }),
+        // ... `cloudflare:test` module provided by Vitest config.
+
         await viteMDXConfig({ projDir }),
         await viteEJSConfig({ mode, projDir, srcDir, pkg, env }),
         await viteC10nHTMLTransformsConfig({ staticDefs }),
-        //
+
         await viteMinifyConfig({ minifyEnable }),
         await viteDTSConfig({ isSSRBuild, distDir }),
-        //
+
         await viteC10nPreProcessingConfig({ command, isSSRBuild, projDir, distDir, appType }),
         await viteC10nPostProcessingConfig({
             mode, wranglerMode, inProdLikeMode, command, isSSRBuild, projDir, distDir,
             pkg, env, appBaseURL, appType, targetEnv, staticDefs, pkgUpdates
         }), // prettier-ignore
+
         ...(prefreshEnable ? [await vitePrefreshConfig({})] : []),
     ];
 
     /**
-     * Configures esbuild for Vite.
-     */
-    const esbuildConfig = await viteESBuildConfig({}); // Minimal config. No props at this time.
-
-    /**
      * Configures terser for Vite.
      */
-    const terserConfig = await viteTerserConfig({}); // Minimal config. No props passed at this time.
+    const terserConfig = await viteTerserConfig({});
+
+    /**
+     * Configures esbuild for Vite.
+     */
+    const esbuildConfig = await viteESBuildConfig({});
+
+    /**
+     * Configures dependency optimizer for Vite.
+     */
+    const depsConfig = await viteDepsConfig({ projDir, pkg, wranglerSettings, prefreshEnable });
 
     /**
      * Configures rollup for Vite.
@@ -246,7 +267,7 @@ export default async ({ mode, command, isSsrBuild: isSSRBuild }) => {
     /**
      * Configures tests for Vite.
      */
-    const vitestConfig = await viteVitestConfig({ srcDir, logsDir, targetEnv, vitestSandboxEnable, vitestExamplesEnable, rollupConfig });
+    const vitestConfig = await viteVitestConfig({ mode, projDir, srcDir, logsDir, pkg, targetEnv, vitestSandboxEnable, vitestExamplesEnable, rollupConfig, depsConfig });
 
     /**
      * Configures imported workers.
@@ -318,16 +339,8 @@ export default async ({ mode, command, isSsrBuild: isSSRBuild }) => {
             target: targetEnvIsServer && ['cfw'].includes(targetEnv) ? 'webworker' : 'node',
             ...(targetEnvIsServer && ['cfw'].includes(targetEnv) ? { noExternal: true } : {}),
         },
-        optimizeDeps: {
-            force: true, // Don’t use cache for optimized deps; recreate.
-            esbuildOptions: {
-                external: ['cloudflare:sockets'],
-                plugins: [await viteMDXESBuildConfig({ projDir })],
-            },
-            // Preact is required by prefresh plugin; {@see https://o5p.me/WmuefH}.
-            ...(prefreshEnable ? { include: ['preact', 'preact/jsx-runtime', 'preact/hooks', 'preact/compat', '@preact/signals'] } : {}),
-        },
         esbuild: esbuildConfig, // esBuild config options.
+        optimizeDeps: depsConfig, // Deps config options.
 
         build: /* <https://vitejs.dev/config/build-options.html> */ {
             target: esVersion.lcnYear, // Matches TypeScript config.

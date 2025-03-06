@@ -24,42 +24,56 @@ const projDir = path.resolve(__dirname, '../../..');
 export default async () => {
     const pkg = await u.pkg();
     const pkgSlug = $app.pkgSlug(pkg.name);
+
+    const o5pOrg = $brand.get('@jaswrks/o5p.org');
+    const o5pMe = $brand.get('@jaswrks/o5p.me');
     const hop = $brand.get('@clevercanyon/hop.gdn');
 
-    return {
-        // This is Clever Canyon’s account ID. ↓
-        defaultAccountId: 'f1176464a976947aa5665d989814a4b1',
+    let brandHostname = hop.hostname;
+    let brandDevZoneHostname = hop.org.n7m + '.workers.dev';
+    let brandAccountId = 'f1176464a976947aa5665d989814a4b1';
+    let brandSupportsLogpush = true; // Requires paid plan.
 
-        compatibilityDate: '2024-03-02',
-        compatibilityFlags: [], // None, for now.
+    if (/^workers-o5p-(?:org|me)(?:$|-)/u.test(pkgSlug)) {
+        brandHostname = /^workers-o5p-org(?:$|-)/u.test(pkgSlug)
+            ? o5pOrg.hostname // O5p.org brand hostname.
+            : o5pMe.hostname; // O5p.me brand hostname.
+        brandDevZoneHostname = 'j5s' + '.workers.dev';
+        brandAccountId = '4cf0983a5f62681776b3bc8a8e35b104';
+        brandSupportsLogpush = false; // Requires paid plan.
+    }
+    return {
+        compatibilityDate: '2025-02-14',
+        // ^ Most recent, as of 2025-03-01.
+        compatibilityFlags: ['nodejs_compat'],
+
+        defaultAccountId: brandAccountId,
+        defaultLogpush: brandSupportsLogpush,
+        defaultDevLogLevel: 'error',
 
         defaultLocalIP: '0.0.0.0',
         defaultLocalHostname: 'localhost',
         defaultLocalProtocol: 'https',
         defaultLocalPort: '443',
 
-        defaultDevLogLevel: 'error',
-        miniflareEnvVarAsString: 'MINIFLARE=true',
-        miniflareEnvVarAsObject: { MINIFLARE: 'true' },
-
-        defaultPagesZoneName: hop.hostname,
+        defaultPagesZoneName: brandHostname,
         defaultPagesDevZoneName: 'pages.dev',
 
         defaultPagesProjectName: pkgSlug,
         defaultPagesProjectShortName: pkgSlug //
-            .replace(/-(?:com|net|org|gdn|hop-gdn)$/iu, ''),
+            .replace(/-(?:o5p-(?:org|me)|hop-gdn|com|net|org|gdn|me)$/iu, ''),
 
         defaultPagesProductionBranch: 'production',
         defaultPagesProjectStageBranchName: 'stage',
         defaultPagesProductionEnvironment: 'production',
 
-        defaultWorkerZoneName: hop.hostname,
-        defaultWorkersDevZoneName: 'c10n.workers.dev',
-        defaultWorkersDomain: 'workers.' + hop.hostname,
+        defaultWorkerZoneName: brandHostname,
+        defaultWorkersDevZoneName: brandDevZoneHostname,
+        defaultWorkersDomain: 'workers.' + brandHostname,
 
         defaultWorkerName: pkgSlug, // e.g., `workers-hop-gdn-utilities`.
-        defaultWorkerShortName: pkgSlug.replace(/^workers-hop-gdn-/iu, ''),
-        defaultWorkerStageShortName: 'stage.' + pkgSlug.replace(/^workers-hop-gdn-/iu, ''),
+        defaultWorkerShortName: pkgSlug.replace(/^workers-(?:o5p-(?:org|me)|hop-gdn)-/iu, ''),
+        defaultWorkerStageShortName: 'stage.' + pkgSlug.replace(/^workers-(?:o5p-(?:org|me)|hop-gdn)-/iu, ''),
 
         osDir: path.resolve(os.homedir(), './.wrangler'),
         projDir: path.resolve(projDir, './.wrangler'),
@@ -71,5 +85,8 @@ export default async () => {
 
         customSSLKeyFile: path.resolve(projDir, './dev/.files/bin/ssl-certs/i10e-ca-key.pem'),
         customSSLCertFile: path.resolve(projDir, './dev/.files/bin/ssl-certs/i10e-ca-crt.pem'),
+
+        runtimeModules: ['cloudflare:email', 'cloudflare:sockets', 'cloudflare:workers', 'cloudflare:workflows'],
+        virtualModules: ['cloudflare:test'], // It is loaded by `@cloudflare/vitest-pool-workers`.
     };
 };
