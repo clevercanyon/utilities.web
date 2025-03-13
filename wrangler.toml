@@ -7,12 +7,25 @@
 # @note This entire file will be updated automatically.
 # @note Instead of editing here, please review `./wrangler.mjs`.
 #
-# Last generated using `./wrangler.mjs` Mar 6, 2025 3:43 PM UTC.
+# Last generated using `./wrangler.mjs` Mar 13, 2025 5:54 AM UTC.
 ##
 
-send_metrics = false
 compatibility_date = "2025-02-14"
 compatibility_flags = [ "nodejs_compat" ]
+send_metrics = false
+
+[limits]
+cpu_ms = 5_000
+
+[placement]
+mode = "off"
+
+[dev]
+ip = "0.0.0.0"
+host = "localhost"
+port = 443
+local_protocol = "https"
+upstream_protocol = "https"
 
 [env]
 dev = { }
