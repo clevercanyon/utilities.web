@@ -3,7 +3,7 @@
     "publishConfig": {
         "access": "public"
     },
-    "version": "1.0.168",
+    "version": "1.0.169",
     "license": "GPL-3.0-or-later",
     "name": "@clevercanyon/utilities.web",
     "description": "Utilities for JavaScript apps running in a web environment.",
@@ -44,20 +44,20 @@
     },
     "dependencies": {},
     "peerDependencies": {
-        "@clevercanyon/utilities": "^1.0.1029"
+        "@clevercanyon/utilities": "^1.0.1035"
     },
     "peerDependenciesMeta": {},
     "optionalDependencies": {},
     "bundleDependencies": [],
     "devDependencies": {
-        "@clevercanyon/dev-deps": "^1.0.410"
+        "@clevercanyon/dev-deps": "^1.0.411"
     },
     "overrides": {},
     "cpu": ["x64", "arm64"],
     "os": ["darwin", "linux"],
     "engines": {
-        "node": "^20.5.0 || ^20.9.0 || ^21.6.2",
-        "npm": "^9.8.0 || ^10.1.0 || ^10.2.4"
+        "node": "^20.9.0 || ^21.6.2 || ^22.9.0",
+        "npm": "^10.1.0 || ^10.2.4 || ^10.8.3"
     },
     "config": {
         "c10n": {
@@ -83,11 +83,11 @@
                         "architects": "push"
                     },
                     "labels": {},
-                    "configVersion": "1.0.9",
+                    "configVersion": "1.0.10",
                     "envsVersion": ""
                 },
                 "npmjs": {
-                    "configVersions": "1.0.9,1.0.9"
+                    "configVersions": "1.0.10,1.0.10"
                 }
             }
         }
